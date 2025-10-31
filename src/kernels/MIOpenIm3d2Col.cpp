@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,33 +57,35 @@ typedef short data_t;
 typedef float data_t;
 #endif
 
-kernel void Im3d2Col(global data_t* const __restrict im,
-                     const unsigned im_offset,
-                     const unsigned im_c_size,
-                     const unsigned im_d_size,
-                     const unsigned im_h_size,
-                     const unsigned im_w_size,
-                     const unsigned wei_d_size,
-                     const unsigned wei_h_size,
-                     const unsigned wei_w_size,
-                     const unsigned out_d_size,
-                     const unsigned out_h_size,
-                     const unsigned out_w_size,
-                     const unsigned pad_d_size,
-                     const unsigned pad_h_size,
-                     const unsigned pad_w_size,
-                     const unsigned stride_d_size,
-                     const unsigned stride_h_size,
-                     const unsigned stride_w_size,
-                     const unsigned dilation_d_size,
-                     const unsigned dilation_h_size,
-                     const unsigned dilation_w_size,
-                     global data_t* __restrict col)
+extern "C" __global__ void Im3d2Col(data_t* const __restrict im,
+                                    const unsigned im_offset,
+                                    const unsigned im_c_size,
+                                    const unsigned im_d_size,
+                                    const unsigned im_h_size,
+                                    const unsigned im_w_size,
+                                    const unsigned wei_d_size,
+                                    const unsigned wei_h_size,
+                                    const unsigned wei_w_size,
+                                    const unsigned out_d_size,
+                                    const unsigned out_h_size,
+                                    const unsigned out_w_size,
+                                    const unsigned pad_d_size,
+                                    const unsigned pad_h_size,
+                                    const unsigned pad_w_size,
+                                    const unsigned stride_d_size,
+                                    const unsigned stride_h_size,
+                                    const unsigned stride_w_size,
+                                    const unsigned dilation_d_size,
+                                    const unsigned dilation_h_size,
+                                    const unsigned dilation_w_size,
+                                    data_t* __restrict col)
 {
     unsigned col_size =
         out_d_size * out_h_size * out_w_size * wei_d_size * wei_h_size * wei_w_size * im_c_size;
 
-    for(unsigned tid = get_global_id(0); tid < col_size; tid += get_global_size(0))
+    unsigned int gtid        = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int global_size = blockDim.x * gridDim.x;
+    for(unsigned tid = gtid; tid < col_size; tid += global_size)
     {
         // "col" matrix row and colume id
         unsigned col_i = tid / (out_d_size * out_h_size * out_w_size);
