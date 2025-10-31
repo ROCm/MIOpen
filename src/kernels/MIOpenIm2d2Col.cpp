@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -106,32 +106,32 @@ typedef float data_t;
  */
 
 #ifdef USE_LARGE_BUFFER_INDEX
-typedef long index_t;
+using index_t = long;
 #else
-typedef int index_t;
+using index_t = int;
 #endif
 
-kernel void Im2d2Col_v2(const int data_size_off,
-                        global data_t* im,
-                        const ulong im_offset,
-                        const int h,
-                        const int w,
-                        const int wei_h,
-                        const int wei_w,
-                        const int out_h,
-                        const int out_w,
-                        const int pad_h,
-                        const int pad_w,
-                        const int stride_h,
-                        const int stride_w,
-                        const int dilation_h,
-                        const int dilation_w,
-                        global data_t* col,
-                        const int num_ch_per_wg,
-                        const int num_im_blks_x,
-                        const int num_im_blks,
-                        const int tile_sz_x,
-                        const int tile_sz_y)
+extern "C" __global__ void Im2d2Col_v2(const int data_size_off,
+                                       data_t* im,
+                                       const unsigned long im_offset,
+                                       const int h,
+                                       const int w,
+                                       const int wei_h,
+                                       const int wei_w,
+                                       const int out_h,
+                                       const int out_w,
+                                       const int pad_h,
+                                       const int pad_w,
+                                       const int stride_h,
+                                       const int stride_w,
+                                       const int dilation_h,
+                                       const int dilation_w,
+                                       data_t* col,
+                                       const int num_ch_per_wg,
+                                       const int num_im_blks_x,
+                                       const int num_im_blks,
+                                       const int tile_sz_x,
+                                       const int tile_sz_y)
 {
     /// NUM_CH_PER_WG {1;4}
     /// THREADS_PER_CH {256; 64}
@@ -147,16 +147,16 @@ kernel void Im2d2Col_v2(const int data_size_off,
 #define IM_OFF_GUARD(idx) im_off[idx]
 #endif
 
-    global data_t* im_off = im + im_offset;
+    data_t* im_off = im + im_offset;
 
 #ifndef EXTREME_LARGE
 
-    int lid = get_local_id(0);
+    int lid = threadIdx.x;
     /// tile_sz_x = {32,16,8,4,2,1}, tile_sz_y = {8,4,2,1}
     /// NUM_IM_BLKS_X = out_w / tile_sz_x
     /// NUM_IM_BLKS = NUM_IM_BLKS_X * out_h / tile_sz_y => out_w * out_h
     /// c * NUM_IM_BLKS => c * out_w * out_h
-    index_t gid = get_group_id(0);
+    index_t gid = blockIdx.x;
 
 #if NUM_IM_BLKS_EQ_1 == 1 && STRIDE_GT_1 == 0
     // This does not need to be a division and should be a right shift
@@ -164,7 +164,7 @@ kernel void Im2d2Col_v2(const int data_size_off,
 
     // Load image into LDS
     /// max (LOCAL_MEM_SIZE) = 65536
-    local data_t local_im[LOCAL_MEM_SIZE];
+    __shared__ data_t local_im[LOCAL_MEM_SIZE];
 
     /// witem_ch [0;4)
     int witem_ch = lid / threads_per_ch;
@@ -180,7 +180,7 @@ kernel void Im2d2Col_v2(const int data_size_off,
         local_im[im_lid]  = IM_OFF_GUARD(im_off_id);
         im_lid += 256;
     }
-    barrier(CLK_LOCAL_MEM_FENCE);
+    __syncthreads();
 
     // where will each thread to col
     /// should fit in LDS size => witem_ch_offset < LOCAL_MEM_SIZE
@@ -227,7 +227,7 @@ kernel void Im2d2Col_v2(const int data_size_off,
 
 #else  // NUM_IM_BLKS > 1 || STRIDE_GT_1 1
 
-    local data_t local_im[LOCAL_MEM_SIZE];
+    __shared__ data_t local_im[LOCAL_MEM_SIZE];
 
     int wg_ch = gid / num_im_blks;
     /// TILE_SZ_X = 32, TILE_SZ_Y = 8;
@@ -268,7 +268,7 @@ kernel void Im2d2Col_v2(const int data_size_off,
 
         inner_lid += 256;
     }
-    barrier(CLK_LOCAL_MEM_FENCE);
+    __syncthreads();
 
     inner_lid = lid;
     while(inner_lid < out_cols_wg * out_rows_wg)
