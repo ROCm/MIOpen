@@ -43,6 +43,8 @@ environmental variables to control logging. Both variables are disabled by defau
 * ``MIOPEN_ENABLE_LOGGING_ELAPSED_TIME``: Adds a timestamp to each log line that indicates the
   time elapsed (in milliseconds) since the previous log message.
 
+* ``MIOPEN_WARN_SEARCH``: Elevate log messages for Search to warnings.
+
 .. note::
 
   If you require technical support, include the console log that is produced from these settings:

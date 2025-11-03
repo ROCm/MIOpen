@@ -394,13 +394,26 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
             ctx_copy.do_search = true;
             ctx_copy.db_update = true;
 
-            return FindCore(invoke_ctx,
-                            ctx_copy,
-                            problem,
-                            params,
-                            conv::GetConvSolverFinders(),
-                            std::nullopt,
-                            force_attach_binary);
+            auto record = DbRecord(DbKinds::FindDb, problem);
+            if(env::enabled(MIOPEN_WARN_SEARCH))
+                MIOPEN_LOG_W("Find Start: " << record.GetKey() << ", findMode: " << findMode);
+            else
+                MIOPEN_LOG_I("Find Start: " << record.GetKey() << ", findMode: " << findMode);
+
+            auto ret = FindCore(invoke_ctx,
+                                ctx_copy,
+                                problem,
+                                params,
+                                conv::GetConvSolverFinders(),
+                                std::nullopt,
+                                force_attach_binary);
+
+            if(env::enabled(MIOPEN_WARN_SEARCH))
+                MIOPEN_LOG_W("Find Ended: " << record.GetKey());
+            else
+                MIOPEN_LOG_I("Find Ended: " << record.GetKey());
+
+            return ret;
         }
     });
 
@@ -488,13 +501,26 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                 ctx_copy.db_update = true;
             }
 
-            return FindCore(invoke_ctx,
-                            ctx_copy,
-                            problem,
-                            params,
-                            conv::GetConvSolverFinders(),
-                            std::nullopt,
-                            force_attach_binary);
+            auto record = DbRecord(DbKinds::FindDb, problem);
+            if(env::enabled(MIOPEN_WARN_SEARCH))
+                MIOPEN_LOG_W("Find Start: " << record.GetKey() << ", findMode: " << findMode);
+            else
+                MIOPEN_LOG_I("Find Start: " << record.GetKey() << ", findMode: " << findMode);
+
+            auto ret = FindCore(invoke_ctx,
+                                ctx_copy,
+                                problem,
+                                params,
+                                conv::GetConvSolverFinders(),
+                                std::nullopt,
+                                force_attach_binary);
+
+            if(env::enabled(MIOPEN_WARN_SEARCH))
+                MIOPEN_LOG_W("Find Ended: " << record.GetKey());
+            else
+                MIOPEN_LOG_I("Find Ended: " << record.GetKey());
+
+            return ret;
         });
     }
 
