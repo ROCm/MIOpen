@@ -86,9 +86,12 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     auto bstrides_fix = bstrides;
     auto astrides_fix = astrides;
-    for(int i = 0; i < 5; ++i){
-        if(blens[i]==1) bstrides_fix[i] = 0;
-        if(alens[i] == 1) astrides_fix[i] = 0;
+    for(int i = 0; i < 5; ++i)
+    {
+        if(blens[i] == 1)
+            bstrides_fix[i] = 0;
+        if(alens[i] == 1)
+            astrides_fix[i] = 0;
     }
 
     KernelBuildParameters build_params = KernelBuildParameters{};
@@ -105,8 +108,9 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     // have to use 64-bit ones
     auto max_off = [&](const auto& lens, const auto& strides) {
         unsigned long long m = 0;
-        for(int i=0;i<5;++i)
-            if(lens[i] > 0) m += (unsigned long long)(lens[i]-1) * (unsigned long long)strides[i];
+        for(int i = 0; i < 5; ++i)
+            if(lens[i] > 0)
+                m += (unsigned long long)(lens[i] - 1) * (unsigned long long)strides[i];
         return m;
     };
 
@@ -117,30 +121,35 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     const auto fits_u32 = [](auto x) { return x <= 0xFFFFFFFFull; };
 
     auto all_fit_u32 = [&](const auto& lens, const auto& strides) {
-        for(int i=0;i<5;++i)
+        for(int i = 0; i < 5; ++i)
             if(!(fits_u32(lens[i]) && fits_u32(strides[i])))
                 return false;
         return true;
     };
 
     bool use_i32 = (a_max < 0x7fffffffULL) && (b_max < 0x7fffffffULL) && (c_max < 0x7fffffffULL);
-    use_i32 = use_i32 && all_fit_u32(alens, astrides_fix) && all_fit_u32(blens, bstrides_fix) && all_fit_u32(clens, cstrides);
+    use_i32 = use_i32 && all_fit_u32(alens, astrides_fix) && all_fit_u32(blens, bstrides_fix) &&
+              all_fit_u32(clens, cstrides);
 
     // check if total work fits in u32 or not
     auto mul_u64_sat = [](uint64_t a, uint64_t b) -> uint64_t {
-        if(a == 0 || b == 0) return uint64_t{0};
-        if(a > (std::numeric_limits<uint64_t>::max() / b)) return std::numeric_limits<uint64_t>::max();
+        if(a == 0 || b == 0)
+            return uint64_t{0};
+        if(a > (std::numeric_limits<uint64_t>::max() / b))
+            return std::numeric_limits<uint64_t>::max();
         return a * b;
     };
 
     uint64_t total_work_u64 = 1;
-    for(int i = 0; i < 5; ++i) total_work_u64 = mul_u64_sat(total_work_u64, static_cast<uint64_t>(clens[i]));
+    for(int i = 0; i < 5; ++i)
+        total_work_u64 = mul_u64_sat(total_work_u64, static_cast<uint64_t>(clens[i]));
     const bool total_work_fits_u32 = (total_work_u64 <= uint64_t{0xFFFFFFFFu});
 
     use_i32 = use_i32 && total_work_fits_u32;
-    if(use_i32) build_params.Define("USE_INDEX32");
+    if(use_i32)
+        build_params.Define("USE_INDEX32");
 
-    auto kernel = KernelInfo{};
+    auto kernel                = KernelInfo{};
     miopenDataType_t data_type = bTensorDesc.GetType();
 
     // size of warp (simultaneously executed threads) + total work
@@ -155,8 +164,8 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     // compute units (CU). The goal is to keep enough warps resident to hide memory latency,
     // while avoiding a cascade of tiny WGs on small problems (scheduler overhead & tail waste).
     //
-    // On AMD, a wavefront is 64 threads. With local_threads = 256, each WG has 256/64 = 4 wavefronts.
-    // The multipliers below roughly target a desired number of wavefronts per CU:
+    // On AMD, a wavefront is 64 threads. With local_threads = 256, each WG has 256/64 = 4
+    // wavefronts. The multipliers below roughly target a desired number of wavefronts per CU:
     //
     // cu_count * 32  -> approx 32 WGs/CU × 4 waves/WG approx 128 waves/CU   (for larger problems)
     // cu_count * 16  -> approx 16 WGs/CU × 4 waves/WG approx  64 waves/CU   (for mid-size problems)
@@ -164,11 +173,13 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     //
     // We downscale the cap when total_packets is small to reduce launch/dispatch overhead and avoid
     // over-fragmentation, yet still keep enough waves per CU to hide latency. For the special case
-    // b_w == 1 (W-broadcast on B), memory access patterns tend to be less favorable; we slightly raise
-    // the cap to allow more WGs in flight and better latency hiding.
+    // b_w == 1 (W-broadcast on B), memory access patterns tend to be less favorable; we slightly
+    // raise the cap to allow more WGs in flight and better latency hiding.
     size_t max_num_wg_hw = cu_count * 32;
-    if(total_packets < 512)  max_num_wg_hw = cu_count * 16;
-    if(total_packets < 128)  max_num_wg_hw = cu_count * 8;
+    if(total_packets < 512)
+        max_num_wg_hw = cu_count * 16;
+    if(total_packets < 128)
+        max_num_wg_hw = cu_count * 8;
 
     size_t local_threads = warp_size * 4;
 
@@ -177,12 +188,16 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     // For b_w == 1 - i.e. "heavy broadcast", limit local_threads to 128 to allow more WGs per CU.
     const bool bw_is_one = (blens[4] == 1);
 
-    if(total_packets < 512)      local_threads = 128;
-    if(total_packets < 128)      local_threads = 64;
-    if(bw_is_one && local_threads > 128) local_threads = 128;
+    if(total_packets < 512)
+        local_threads = 128;
+    if(total_packets < 128)
+        local_threads = 64;
+    if(bw_is_one && local_threads > 128)
+        local_threads = 128;
 
     // For W-broadcast, slightly increase the upper WG cap to better hide memory latency.
-    if(bw_is_one) max_num_wg_hw = std::max(max_num_wg_hw, cu_count * 48);
+    if(bw_is_one)
+        max_num_wg_hw = std::max(max_num_wg_hw, cu_count * 48);
 
     // Required number of WGs given the chosen local_threads
     const size_t need_wg = (total_packets + local_threads - 1) / local_threads;
@@ -203,9 +218,10 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
     kernel.kernel_file  = "MIOpenTensorKernelsHip.cpp";
 
-    const bool is_contig = [&]{
+    const bool is_contig = [&] {
         uint64_t exp = 1;
-        for(int i = 4; i >= 0; --i) {
+        for(int i = 4; i >= 0; --i)
+        {
             if(static_cast<uint64_t>(astrides[i]) != exp ||
                static_cast<uint64_t>(bstrides[i]) != exp ||
                static_cast<uint64_t>(cstrides[i]) != exp)
@@ -216,7 +232,7 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     }();
 
     const bool shapes_equal = (alens == blens) && (blens == clens);
-    const bool use_fast = shapes_equal && is_contig;
+    const bool use_fast     = shapes_equal && is_contig;
 
     // kernel selector
     if(use_fast)
@@ -228,90 +244,96 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
-    result.invoker_factory =
-        [data_type, blens, clens, cstrides, astrides_fix, bstrides_fix, kernel_name = kernel.kernel_name, mul_u64_sat](
-            const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-                auto kernel = handle.Run(kernels.front());
-                auto params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
+    result.invoker_factory = [data_type,
+                              blens,
+                              clens,
+                              cstrides,
+                              astrides_fix,
+                              bstrides_fix,
+                              kernel_name = kernel.kernel_name,
+                              mul_u64_sat](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
+            auto kernel = handle.Run(kernels.front());
+            auto params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-                visit_float(data_type, [&](auto as_float) {
-                    const float alpha0f = *static_cast<const float*>(params.alpha0);
-                    const float alpha1f = *static_cast<const float*>(params.alpha1);
-                    const float betaf   = *static_cast<const float*>(params.beta);
-                    const auto alpha0   = as_float(alpha0f);
-                    const auto alpha1   = as_float(alpha1f);
-                    const auto beta     = as_float(betaf);
+            visit_float(data_type, [&](auto as_float) {
+                const float alpha0f = *static_cast<const float*>(params.alpha0);
+                const float alpha1f = *static_cast<const float*>(params.alpha1);
+                const float betaf   = *static_cast<const float*>(params.beta);
+                const auto alpha0   = as_float(alpha0f);
+                const auto alpha1   = as_float(alpha1f);
+                const auto beta     = as_float(betaf);
 
-                    uint64_t total_work = 1;
-                    for (int i = 0; i < 5; ++i) total_work = mul_u64_sat(total_work, static_cast<uint64_t>(clens[i]));
+                uint64_t total_work = 1;
+                for(int i = 0; i < 5; ++i)
+                    total_work = mul_u64_sat(total_work, static_cast<uint64_t>(clens[i]));
 
-                    if(kernel_name == "Op5dTensorGenericContiguous")
-                    {
-                        kernel(params.ATensor,
-                               params.BTensor,
-                               params.CTensor,
-                               static_cast<uint64_t>(params.Aoffset),
-                               static_cast<uint64_t>(params.Boffset),
-                               static_cast<uint64_t>(params.Coffset),
-                               uint64_t(blens[0]),
-                               uint64_t(blens[1]),
-                               uint64_t(blens[2]),
-                               uint64_t(blens[3]),
-                               uint64_t(blens[4]),
-                               uint64_t(clens[0]),
-                               uint64_t(clens[1]),
-                               uint64_t(clens[2]),
-                               uint64_t(clens[3]),
-                               uint64_t(clens[4]),
-                               alpha0,
-                               alpha1,
-                               beta,
-                               total_work,
-                               !float_equal(beta, 0.0f));
-                    }
-                    else // Op5dTensorGeneric - case
-                    {
-                        kernel(params.ATensor,
-                               params.BTensor,
-                               params.CTensor,
-                               uint64_t(params.Aoffset),
-                               uint64_t(params.Boffset),
-                               uint64_t(params.Coffset),
-                               uint64_t(blens[0]),
-                               uint64_t(blens[1]),
-                               uint64_t(blens[2]),
-                               uint64_t(blens[3]),
-                               uint64_t(blens[4]),
-                               uint64_t(clens[0]),
-                               uint64_t(clens[1]),
-                               uint64_t(clens[2]),
-                               uint64_t(clens[3]),
-                               uint64_t(clens[4]),
-                               uint64_t(astrides_fix[0]),
-                               uint64_t(astrides_fix[1]),
-                               uint64_t(astrides_fix[2]),
-                               uint64_t(astrides_fix[3]),
-                               uint64_t(astrides_fix[4]),
-                               uint64_t(bstrides_fix[0]),
-                               uint64_t(bstrides_fix[1]),
-                               uint64_t(bstrides_fix[2]),
-                               uint64_t(bstrides_fix[3]),
-                               uint64_t(bstrides_fix[4]),
-                               uint64_t(cstrides[0]),
-                               uint64_t(cstrides[1]),
-                               uint64_t(cstrides[2]),
-                               uint64_t(cstrides[3]),
-                               uint64_t(cstrides[4]),
-                               alpha0,
-                               alpha1,
-                               beta,
-                               total_work,
-                               !float_equal(beta, 0.0f));
-                    }
-                });
-            };
+                if(kernel_name == "Op5dTensorGenericContiguous")
+                {
+                    kernel(params.ATensor,
+                           params.BTensor,
+                           params.CTensor,
+                           static_cast<uint64_t>(params.Aoffset),
+                           static_cast<uint64_t>(params.Boffset),
+                           static_cast<uint64_t>(params.Coffset),
+                           uint64_t(blens[0]),
+                           uint64_t(blens[1]),
+                           uint64_t(blens[2]),
+                           uint64_t(blens[3]),
+                           uint64_t(blens[4]),
+                           uint64_t(clens[0]),
+                           uint64_t(clens[1]),
+                           uint64_t(clens[2]),
+                           uint64_t(clens[3]),
+                           uint64_t(clens[4]),
+                           alpha0,
+                           alpha1,
+                           beta,
+                           total_work,
+                           !float_equal(beta, 0.0f));
+                }
+                else // Op5dTensorGeneric - case
+                {
+                    kernel(params.ATensor,
+                           params.BTensor,
+                           params.CTensor,
+                           uint64_t(params.Aoffset),
+                           uint64_t(params.Boffset),
+                           uint64_t(params.Coffset),
+                           uint64_t(blens[0]),
+                           uint64_t(blens[1]),
+                           uint64_t(blens[2]),
+                           uint64_t(blens[3]),
+                           uint64_t(blens[4]),
+                           uint64_t(clens[0]),
+                           uint64_t(clens[1]),
+                           uint64_t(clens[2]),
+                           uint64_t(clens[3]),
+                           uint64_t(clens[4]),
+                           uint64_t(astrides_fix[0]),
+                           uint64_t(astrides_fix[1]),
+                           uint64_t(astrides_fix[2]),
+                           uint64_t(astrides_fix[3]),
+                           uint64_t(astrides_fix[4]),
+                           uint64_t(bstrides_fix[0]),
+                           uint64_t(bstrides_fix[1]),
+                           uint64_t(bstrides_fix[2]),
+                           uint64_t(bstrides_fix[3]),
+                           uint64_t(bstrides_fix[4]),
+                           uint64_t(cstrides[0]),
+                           uint64_t(cstrides[1]),
+                           uint64_t(cstrides[2]),
+                           uint64_t(cstrides[3]),
+                           uint64_t(cstrides[4]),
+                           alpha0,
+                           alpha1,
+                           beta,
+                           total_work,
+                           !float_equal(beta, 0.0f));
+                }
+            });
         };
+    };
     result.construction_params.push_back(kernel);
     return result;
 }
