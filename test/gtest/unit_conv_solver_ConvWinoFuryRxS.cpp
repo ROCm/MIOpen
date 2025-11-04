@@ -55,7 +55,7 @@ auto GetConvTestCasesWrw(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx110X);
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx110X | Gpu::gfx120X);
         return p;
     }();
     return params;

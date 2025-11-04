@@ -50,6 +50,9 @@ void PrintTo(const CandidateSelectionParams& p, std::ostream* os)
     *os << p.arch << "_" << p.solver << "_" << p.kernel_name << "_splitk" << p.split_k;
 }
 
+// Default validation function: accepts all kernel/split_k combinations
+inline constexpr auto accept_all_combinations = [](int, int) { return true; };
+
 std::vector<std::vector<std::string>> GenerateValidKernelParams(
     const CandidateSelectionMetadata& meta, const std::string& kernel_name, int num_candidates = 3)
 {
@@ -277,8 +280,12 @@ TEST_P(CPU_CandidateSelection_NONE, ModelSelectBestCandidate_Test)
     for(const auto& name : meta.input_params())
         features[name] = 1.0f;
     auto valid_kernel_params = GenerateValidKernelParams(meta, params.kernel_name, 3);
-    auto result              = ModelSelectBestCandidate(
-        params.arch, params.solver, features, valid_kernel_params, /*use_split_k=*/false);
+    auto result              = ModelSelectBestCandidate(params.arch,
+                                           params.solver,
+                                           features,
+                                           valid_kernel_params,
+                                           /*use_split_k=*/false,
+                                           accept_all_combinations);
     for(const auto& idx : result.kernel_indices)
     {
         ASSERT_GE(idx, 0) << "Candidate index is negative!";
@@ -294,7 +301,8 @@ TEST_P(CPU_CandidateSelection_NONE, ExpandKernelParamsWithSplitK_Test)
     std::vector<std::vector<std::string>> kernels = {{"typeA", "p1"}, {"typeB", "p2"}};
     std::vector<int> indexes                      = {0, 1};
     std::vector<int> split_ks = miopen::solver::conv::GenerateSplitK(params.split_k);
-    auto [expanded, mapping]  = ExpandKernelParamsWithSplitK(kernels, indexes, split_ks);
+    auto [expanded, mapping] =
+        ExpandKernelParamsWithSplitK(kernels, indexes, split_ks, accept_all_combinations);
     ASSERT_EQ(expanded.size(), 8u);
     ASSERT_EQ(mapping.size(), 8u);
     std::vector<std::vector<std::string>> expected_expanded = {
@@ -323,7 +331,8 @@ TEST_P(CPU_CandidateSelection_NONE, ExpandKernelParamsWithSplitKFunctionality_Te
         {"DeviceGroupedConvBwdWeight_Xdl_CShuffle", "p1"}};
     std::vector<int> indexes  = {0};
     std::vector<int> split_ks = miopen::solver::conv::GenerateSplitK(params.split_k);
-    auto [expanded, mapping]  = ExpandKernelParamsWithSplitK(kernels, indexes, split_ks);
+    auto [expanded, mapping] =
+        ExpandKernelParamsWithSplitK(kernels, indexes, split_ks, accept_all_combinations);
     ASSERT_EQ(expanded.size(), split_ks.size());
     ASSERT_EQ(mapping.size(), split_ks.size());
     for(size_t i = 0; i < split_ks.size(); ++i)

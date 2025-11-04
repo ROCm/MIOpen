@@ -76,8 +76,11 @@ default n_per_group, 1
 default pipe_lines_depth, 2
 default chunk_size, 16
 default reverse_inout, 0
-default weights_layout, 0
 default reverse_weights, 0
+
+.set local_input_channels, input_channels
+.set local_output_channels, output_channels
+.set local_reverse_weights, reverse_weights
 
 // gfx90a requires 64bit aligned vgpr tuples
 // Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
@@ -104,11 +107,10 @@ vec_size = elements_in_dword
 
 .if reverse_inout
    static_assert (stride_h == 1 && stride_w == 1)
-   swap input_channels, output_channels
+   swap local_input_channels, local_output_channels
    swap in_ptr_off, out_ptr_off
    swap gid_y, gid_z
-   reverse_weights = !reverse_weights
-   weights_layout = !weights_layout
+   local_reverse_weights = !local_reverse_weights
 .endif
 
 static_assert (pad_h == 1 && pad_w == 1)
@@ -121,8 +123,8 @@ static_assert (wei_h == 3 && wei_w == 3)
 static_assert (img_w <= 512)
 static_assert (pipe_lines_depth <= img_h)
 static_assert (pad_h < wei_h)
-static_assert (input_channels % c_per_wave == 0)
-static_assert (output_channels % k_per_wave == 0)
+static_assert (local_input_channels % c_per_wave == 0)
+static_assert (local_output_channels % k_per_wave == 0)
 static_assert (1 <= n_per_group && n_per_group <= 8)
 static_assert (n_per_group <= batch_size)
 static_assert (c_per_wave * chunk_size == 64)
@@ -381,11 +383,11 @@ miopenGcnAsmConv3x3WrW:
    s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
 
    // calculate group offsets
-   static_assert(output_channels % (k_per_wave * group_counts) == 0)
-   static_assert(input_channels % (c_per_wave * group_counts) == 0)
+   static_assert(local_output_channels % (k_per_wave * group_counts) == 0)
+   static_assert(local_input_channels % (c_per_wave * group_counts) == 0)
    .if reverse_inout
-       c_group_size = output_channels / k_per_wave / group_counts
-       k_group_size = input_channels / c_per_wave / group_counts
+       c_group_size = local_output_channels / k_per_wave / group_counts
+       k_group_size = local_input_channels / c_per_wave / group_counts
        .if k_group_size_is_power_of_two
            log2 k_group_size_log2, k_group_size
            s_lshr_b32 s[stmp], s[gid_y], 0 + k_group_size_log2 // group_id
@@ -398,8 +400,8 @@ miopenGcnAsmConv3x3WrW:
        s_mul_i32 s[stmp], s[stmp], c_group_size * k_per_wave * output_feature_map_size // k_group_offset
        s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
    .else
-       k_group_size = output_channels / k_per_wave / group_counts
-       c_group_size = input_channels / c_per_wave / group_counts
+       k_group_size = local_output_channels / k_per_wave / group_counts
+       c_group_size = local_input_channels / c_per_wave / group_counts
        .if k_group_size_is_power_of_two
            log2 k_group_size_log2, k_group_size
            s_lshr_b32 s[stmp], s[gid_z], 0 + k_group_size_log2 // group_id
@@ -564,7 +566,7 @@ miopenGcnAsmConv3x3WrW:
          .endif
          .rept wei_w
             in_x = out_x * stride_w - pad_w + acc_x
-            .if reverse_weights
+            .if local_reverse_weights
                acc_off = wei_w - acc_x - 1
             .else
                acc_off = acc_x
@@ -660,7 +662,7 @@ loop_n_begin: // loop over batch (n)
 
    .macro conv_filter in_line0, in_line1, in_line2, out_line, acc_batch, sync=0, swizzle=0
       static_assert (wei_h == 3)
-      .if reverse_weights
+      .if local_reverse_weights
          accl0 = 2
          accl1 = 1
          accl2 = 0

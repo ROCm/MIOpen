@@ -30,6 +30,7 @@
 #include <memory>
 #include <optional>
 #include <map>
+#include <functional>
 #include <miopen/config.hpp>
 
 namespace miopen {
@@ -46,6 +47,8 @@ std::vector<std::vector<float>>
 EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_candidates,
                              const std::string& arch,
                              const std::string& solver);
+
+using ValidationFunc = std::function<bool(int, int)>;
 
 class CandidateSelectionMetadata
 {
@@ -150,13 +153,15 @@ ModelSelectBestCandidate(const std::string& arch,
                          const std::string& solver,
                          const std::map<std::string, float>& features,
                          const std::vector<std::vector<std::string>>& valid_kernel_params,
-                         bool use_split_k);
+                         bool use_split_k,
+                         ValidationFunc&& is_valid);
 
 MIOPEN_INTERNALS_EXPORT
 std::pair<std::vector<std::vector<std::string>>, std::vector<std::pair<int, int>>>
 ExpandKernelParamsWithSplitK(const std::vector<std::vector<std::string>>& kernels,
                              const std::vector<int>& indexes,
-                             const std::vector<int>& split_ks);
+                             const std::vector<int>& split_ks,
+                             ValidationFunc&& is_valid);
 
 } // namespace candidate_selection
 } // namespace tuning
