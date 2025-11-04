@@ -56,6 +56,8 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING_MPMT)
 /// Add timestamps to each log line.
 /// Not useful  with multi-process/multi-threaded apps.
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME)
+/// Add timestamps to each log line.
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING_DATE_TIME)
 
 /// See LoggingLevel in the header.
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_LOG_LEVEL)
@@ -115,6 +117,27 @@ inline float GetTimeDiff()
         std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(now - prev).count();
     prev = now;
     return rv;
+}
+
+inline std::string GetDateTimeMs()
+{
+    auto now = std::chrono::system_clock::now();
+    auto ms  = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    auto now_t = std::chrono::system_clock::to_time_t(now);
+
+    std::tm local_time{};
+#if defined(_WIN32)
+    if(localtime_s(&local_time, &now_t) != 0)
+        return std::string{};
+#else
+    if(localtime_r(&now_t, &local_time) == nullptr)
+        return std::string{};
+#endif
+
+    std::ostringstream time_s;
+    time_s << std::put_time(&local_time, "%Y-%m-%dT%H:%M:%S");
+    time_s << "." << std::setfill('0') << std::setw(3) << ms.count() << "Z";
+    return time_s.str();
 }
 
 } // namespace
@@ -194,6 +217,10 @@ std::string LoggingPrefix()
     if(env::enabled(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME))
     {
         ss << std::fixed << std::setprecision(3) << std::setw(8) << GetTimeDiff();
+    }
+    if(env::enabled(MIOPEN_ENABLE_LOGGING_DATE_TIME))
+    {
+        ss << " (" << GetDateTimeMs() << ")";
     }
     ss << ": ";
     return ss.str();
