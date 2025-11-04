@@ -51,8 +51,9 @@ MIOPEN_INTERNALS_EXPORT void FillHeuristicKernels(const std::vector<std::string>
                                                   std::vector<std::vector<std::string>>& kernels);
 
 MIOPEN_INTERNALS_EXPORT std::vector<int> GenerateSplitK(int max_split_k);
-// Main template implementation
-template <typename DataType>
+
+// Main template implementation with validation function
+template <typename DataType, typename ValidationFunc>
 std::pair<bool, miopen::ai::tuning::candidate_selection::CandidateSelectionResult>
 RunParameterPredictionModel(
     const miopen::ExecutionContext& ctx,
@@ -63,7 +64,8 @@ RunParameterPredictionModel(
     std::string& kernel_id,
     std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)>
         fill_valid_kernels,
-    std::string solver_name)
+    std::string solver_name,
+    ValidationFunc&& is_valid)
 {
     valid_kernels = fill_valid_kernels(problem);
 
@@ -88,7 +90,12 @@ RunParameterPredictionModel(
         }
 
         auto result = ai::tuning::candidate_selection::ModelSelectBestCandidate(
-            arch, solver_name, features, heuristic_kernels, use_split_k);
+            arch,
+            solver_name,
+            features,
+            heuristic_kernels,
+            use_split_k,
+            std::forward<ValidationFunc>(is_valid));
 
         // Check if we have any candidates
         if(!result.IsEmpty())

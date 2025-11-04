@@ -208,8 +208,9 @@ std::vector<int> GenerateSplitK(int max_split_k)
 }
 
 // Explicit template instantiations for common types
+// Note: We instantiate with a generic lambda type for the validation function
 template std::pair<bool, miopen::ai::tuning::candidate_selection::CandidateSelectionResult>
-RunParameterPredictionModel<float>(
+RunParameterPredictionModel<float, bool (*)(int, int)>(
     const miopen::ExecutionContext&,
     const ProblemDescription&,
     std::vector<std::string>&,
@@ -217,10 +218,11 @@ RunParameterPredictionModel<float>(
     int&,
     std::string&,
     std::function<std::vector<std::string>(const ProblemDescription&)>,
-    std::string);
+    std::string,
+    bool (*&&)(int, int));
 
 template std::pair<bool, miopen::ai::tuning::candidate_selection::CandidateSelectionResult>
-RunParameterPredictionModel<int8_t>(
+RunParameterPredictionModel<int8_t, bool (*)(int, int)>(
     const miopen::ExecutionContext&,
     const ProblemDescription&,
     std::vector<std::string>&,
@@ -228,11 +230,12 @@ RunParameterPredictionModel<int8_t>(
     int&,
     std::string&,
     std::function<std::vector<std::string>(const ProblemDescription&)>,
-    std::string);
+    std::string,
+    bool (*&&)(int, int));
 #if MIOPEN_USE_COMPOSABLEKERNEL
 
 template std::pair<bool, miopen::ai::tuning::candidate_selection::CandidateSelectionResult>
-RunParameterPredictionModel<ck::half_t>(
+RunParameterPredictionModel<ck::half_t, bool (*)(int, int)>(
     const miopen::ExecutionContext&,
     const ProblemDescription&,
     std::vector<std::string>&,
@@ -240,10 +243,11 @@ RunParameterPredictionModel<ck::half_t>(
     int&,
     std::string&,
     std::function<std::vector<std::string>(const ProblemDescription&)>,
-    std::string);
+    std::string,
+    bool (*&&)(int, int));
 
 template std::pair<bool, miopen::ai::tuning::candidate_selection::CandidateSelectionResult>
-RunParameterPredictionModel<ck::bhalf_t>(
+RunParameterPredictionModel<ck::bhalf_t, bool (*)(int, int)>(
     const miopen::ExecutionContext&,
     const ProblemDescription&,
     std::vector<std::string>&,
@@ -251,7 +255,8 @@ RunParameterPredictionModel<ck::bhalf_t>(
     int&,
     std::string&,
     std::function<std::vector<std::string>(const ProblemDescription&)>,
-    std::string);
+    std::string,
+    bool (*&&)(int, int));
 #endif
 
 // helper function to get a dummy execution context for when we do not have a real context

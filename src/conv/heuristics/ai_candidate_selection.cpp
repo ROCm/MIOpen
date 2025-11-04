@@ -326,18 +326,23 @@ MIOPEN_INTERNALS_EXPORT
 std::pair<std::vector<std::vector<std::string>>, std::vector<std::pair<int, int>>>
 ExpandKernelParamsWithSplitK(const std::vector<std::vector<std::string>>& kernels,
                              const std::vector<int>& indexes,
-                             const std::vector<int>& split_ks)
+                             const std::vector<int>& split_ks,
+                             ValidationFunc&& is_valid)
 {
     std::vector<std::vector<std::string>> expanded;
     std::vector<std::pair<int, int>> mapping;
+
     for(size_t i = 0; i < kernels.size(); ++i)
     {
         for(int split_k : split_ks)
         {
-            auto candidate = kernels[i];
-            candidate.push_back(std::to_string(split_k));
-            expanded.push_back(candidate);
-            mapping.emplace_back(indexes[i], split_k);
+            if(is_valid(indexes[i], split_k))
+            {
+                auto candidate = kernels[i];
+                candidate.push_back(std::to_string(split_k));
+                expanded.push_back(candidate);
+                mapping.emplace_back(indexes[i], split_k);
+            }
         }
     }
     return {expanded, mapping};
@@ -541,7 +546,8 @@ ModelSelectBestCandidate(const std::string& arch,
                          const std::string& solver,
                          const std::map<std::string, float>& features,
                          const std::vector<std::vector<std::string>>& valid_kernel_params,
-                         const bool use_split_k)
+                         const bool use_split_k,
+                         ValidationFunc&& is_valid)
 {
     try
     {
@@ -563,7 +569,17 @@ ModelSelectBestCandidate(const std::string& arch,
 
             // Expand kernel params with split_k and keep mapping
             std::tie(expanded_params, mapping_pairs) =
-                ExpandKernelParamsWithSplitK(valid_kernel_params, heuristic_indexes, split_ks);
+                ExpandKernelParamsWithSplitK(valid_kernel_params,
+                                             heuristic_indexes,
+                                             split_ks,
+                                             std::forward<ValidationFunc>(is_valid));
+
+            // check if any valid combinations were found
+            if(expanded_params.empty())
+            {
+                MIOPEN_LOG_W("No valid kernel+split_k combinations found after filtering");
+                return CandidateSelectionResult{{}, {}};
+            }
         }
         else
         {

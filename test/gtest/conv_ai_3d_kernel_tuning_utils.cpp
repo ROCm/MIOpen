@@ -83,6 +83,9 @@ const std::vector<std::string> dummy_kernels = {
 static std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)>
     fill_valid_kernels = [](const miopen::conv::ProblemDescription&) { return dummy_kernels; };
 
+// Default validation function: accepts all kernel/split_k combinations
+inline constexpr auto accept_all_combinations = [](int, int) { return true; };
+
 // Helper: reusable problem description
 miopen::conv::ProblemDescription GetReusableProblemDescription(
     miopenDataType_t dataType         = miopenFloat,
@@ -322,8 +325,16 @@ TEST_F(GPU_Conv3DKernelTuningAI_FP32, RunParameterPredictionModel_Test)
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
 
-    auto [ai_success, result] = miopen::solver::conv::RunParameterPredictionModel<float>(
-        ctx, problem, valid_kernels, index, split_k, kernel_id, fill_valid_kernels, solver_name);
+    auto [ai_success, result] =
+        miopen::solver::conv::RunParameterPredictionModel<float>(ctx,
+                                                                 problem,
+                                                                 valid_kernels,
+                                                                 index,
+                                                                 split_k,
+                                                                 kernel_id,
+                                                                 fill_valid_kernels,
+                                                                 solver_name,
+                                                                 accept_all_combinations);
 
     ASSERT_TRUE(ai_success);
     ASSERT_FALSE(kernel_id.empty());
@@ -340,8 +351,16 @@ TEST_F(GPU_Conv3DKernelTuningAI_FP32, RunParameterPredictionModel_Fallback_Test)
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
 
-    auto [ai_success, result] = miopen::solver::conv::RunParameterPredictionModel<float>(
-        ctx, problem, valid_kernels, index, split_k, kernel_id, empty_kernels, solver_name);
+    auto [ai_success, result] =
+        miopen::solver::conv::RunParameterPredictionModel<float>(ctx,
+                                                                 problem,
+                                                                 valid_kernels,
+                                                                 index,
+                                                                 split_k,
+                                                                 kernel_id,
+                                                                 empty_kernels,
+                                                                 solver_name,
+                                                                 accept_all_combinations);
 
     ASSERT_FALSE(ai_success);
     ASSERT_TRUE(kernel_id.empty());
