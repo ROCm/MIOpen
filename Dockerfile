@@ -27,13 +27,13 @@ RUN apt-get update && \
     curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
 # Get and install amdgpu-install.
-RUN wget https://repo.radeon.com/amdgpu-install/6.4.3/ubuntu/jammy/amdgpu-install_6.4.60403-1_all.deb --no-check-certificate && \
+RUN wget https://repo.radeon.com/amdgpu-install/7.0.2/ubuntu/jammy/amdgpu-install_7.0.2.70002-1_all.deb --no-check-certificate && \
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-       ./amdgpu-install_6.4.60403-1_all.deb
+       ./amdgpu-install_7.0.2.70002-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=6.4.3; \
+RUN export ROCM_APT_VER=7.0.2; \
     echo $ROCM_APT_VER &&\
     sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
     sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
@@ -169,7 +169,6 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     -D CMAKE_BUILD_TYPE=Release \
     -D GPU_ARCHS=${GPU_ARCHS} \
     -D MIOPEN_REQ_LIBS_ONLY=ON \
-    -D DISABLE_OFFLOAD_COMPRESS=ON \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
     make -j ${num_threads} install && \    
     if [ "$MIOPEN_SCCACHE" != "" ]; then \

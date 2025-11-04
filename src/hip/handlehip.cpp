@@ -130,9 +130,13 @@ void* default_allocator(void*, size_t sz)
 void default_deallocator(void*, void* mem)
 {
     size_t size = 0;
-    auto status = hipMemPtrGetInfo(mem, &size);
-    if(status != hipSuccess)
-        MIOPEN_LOG_W("hipMemPtrGetInfo at " << mem << " status: " << status);
+    hipError_t status;
+    if(mem != nullptr)
+    {
+        status = hipMemPtrGetInfo(mem, &size);
+        if(status != hipSuccess)
+            MIOPEN_LOG_W("hipMemPtrGetInfo at " << mem << " status: " << status);
+    }
     status = hipFree(mem);
     if(status != hipSuccess)
     {

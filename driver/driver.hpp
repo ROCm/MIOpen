@@ -190,8 +190,12 @@ struct GPUMem
     {
         buf = static_cast<char*>(buf) - GetOffsetToUserBuffer();
 
-        size_t size = 0;
-        auto status = hipMemPtrGetInfo(buf, &size);
+        size_t size       = 0;
+        hipError_t status = hipSuccess;
+        if(buf != nullptr)
+        {
+            status = hipMemPtrGetInfo(buf, &size);
+        }
         if(status != hipSuccess)
             MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Warning,
                               "MIOpenDriver",
