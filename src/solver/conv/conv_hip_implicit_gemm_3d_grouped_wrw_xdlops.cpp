@@ -47,11 +47,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-/// https://github.com/ROCm/rocm-libraries/issues/2293 AI heuristics splitk validity issue.
-#define WORKAROUND_ROCMLIBS_ISSUE_2293 1
-#endif
-
 namespace miopen {
 namespace solver {
 namespace conv {
@@ -401,7 +396,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     // 1. AI heuristics (if enabled)
-#if(WORKAROUND_ROCMLIBS_ISSUE_2293 == 0) && MIOPEN_ENABLE_AI_KERNEL_TUNING
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(&ctx != &GetDummyCtx() &&
        !env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
     {
@@ -419,6 +414,34 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
                 [=](const ::miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
                 return FillValidKernelsByAlphaBeta<T>(problem);
             };
+
+            // Validation lambda for AI-predicted kernel + split_k combinations
+            auto is_kernel_split_k_valid = [&](int kernel_index, int split_k_value) -> bool {
+                if(kernel_index < 0 || kernel_index >= static_cast<int>(valid_kernels.size()))
+                    return false;
+
+                std::string test_kernel_id =
+                    valid_kernels[kernel_index] + "+" + std::to_string(split_k_value);
+
+                switch(problem.GetAlphaBetaCase())
+                {
+                case BILINEAR:
+                    return IsCKArgsSupported<DeviceOpGBwdWeightBilinearPtrs<T>,
+                                             CKArgs<T>,
+                                             miopen::conv::ProblemDescription,
+                                             true>(problem, test_kernel_id);
+                case SCALE:
+                    return IsCKArgsSupported<DeviceOpGBwdWeightScalePtrs<T>,
+                                             CKArgs<T>,
+                                             miopen::conv::ProblemDescription,
+                                             true>(problem, test_kernel_id);
+                default:
+                    return IsCKArgsSupported<DeviceOpGBwdWeightDefaultPtrs<T>,
+                                             CKArgs<T>,
+                                             miopen::conv::ProblemDescription,
+                                             true>(problem, test_kernel_id);
+                }
+            };
             return miopen::solver::conv::RunParameterPredictionModel<T>(ctx,
                                                                         problem,
                                                                         valid_kernels,
@@ -426,7 +449,8 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
                                                                         split_k,
                                                                         kernel_id,
                                                                         fill_valid_kernels,
-                                                                        solver_name);
+                                                                        solver_name,
+                                                                        is_kernel_split_k_valid);
         };
         switch(problem.GetInDataType())
         {
