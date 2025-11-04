@@ -63,11 +63,6 @@ constexpr uint32_t PowOf2()
     return 1U << exp;
 }
 
-// Divide two non-negative integers and return ceil of the quotient
-constexpr uint64_t DivCeil(uint64_t numer, uint64_t denom) { return (numer + denom - 1) / denom; }
-
-constexpr uint64_t RoundUpToMultiple(uint64_t val, uint64_t mul) { return DivCeil(val, mul) * mul; }
-
 // Number of thread groups
 uint32_t GetNGroups(uint64_t cu_count)
 {
@@ -78,55 +73,43 @@ uint32_t GetNGroups(uint64_t cu_count)
     return std::min(cu_count, max_n_groups);
 }
 
-bool IsShaderConstraintsMetV2(const WinoShaderArgsV2& args, uint32_t n_groups)
-{
-    // Current limitations:
-    // clang-format off
-    return args.N < PowOf2<16>()
-        && args.Cg < PowOf2<16>()
-        && args.H < PowOf2<16>()
-        && args.W < PowOf2<16>()
-        && args.pad_h >= std::numeric_limits<int16_t>::min() && args.pad_h <= std::numeric_limits<int16_t>::max()
-        && args.pad_w >= std::numeric_limits<int16_t>::min() && args.pad_w <= std::numeric_limits<int16_t>::max()
-        && args.out_h < PowOf2<16>()
-        && args.out_w < PowOf2<16>() - 3
-        && args.R <= 3
-        && args.S <= 3
-        && (static_cast<uint64_t>(args.N - 1) * args.Cg + 1) * args.H * args.W < PowOf2<31>()
-        && (static_cast<uint64_t>(args.N - 1) * args.Kg + 1) * args.out_h * args.out_w < PowOf2<31>()
-        && DivCeil(args.Kg, 16) <= n_groups
-        && args.G == 1;
-    // clang-format on
-}
-
-bool IsShaderConstraintsMet(const WinoShaderArgsV2& args, uint32_t n_groups)
-{
-    return IsShaderConstraintsMetV2(args, n_groups);
-}
-
 bool GpuHasReducedVGPRMem(const std::string& dev_name)
 {
-    if(dev_name == "gfx1100" || dev_name == "gfx1101" || dev_name == "gfx1151")
-        return false;
-    return true;
+    static constexpr std::array<std::string_view, 5> kFullVgprMemDevices{
+        "gfx1100", "gfx1101", "gfx1151", "gfx1200", "gfx1201"};
+    const std::string_view name{dev_name};
+    return std::find(kFullVgprMemDevices.begin(), kFullVgprMemDevices.end(), name) ==
+           kFullVgprMemDevices.end();
 }
 
+struct PerfModelInfo
+{
+    uint64_t predicted_clk;
+    float granularity_loss;
+};
+
+struct PerfModelCost
+{
+    uint64_t start_cost;
+    uint64_t accum_cost;
+    uint64_t activ_cost;
+    uint64_t filter_cost;
+};
+
+// Base class for shader performance models
 class ShaderModel
 {
-    const uint64_t N, C, K, R, S, oH, oW, G;
+protected:
+    const uint64_t N, C, K, R, S, oH, oW, G, H, W;
+    const int32_t pad_h, pad_w;
     const uint64_t n_groups;
     const uint32_t cu_count;
     const bool reduced_vgpr;
-
-    struct PerfModelInfo
-    {
-        uint64_t predicted_clk;
-        float granularity_loss;
-    };
+    std::array<PerfModelCost, 2> model_params;
 
 public:
-    ShaderModel(const ExecutionContext& ctx,
-                const WinoShaderArgsV2& args,
+    static constexpr float default_wti = -2.0f;
+    ShaderModel(const WinoShaderArgsV2& args,
                 uint32_t cu_cnt,
                 uint32_t n_grp,
                 bool reduced_vgpr_mem)
@@ -138,22 +121,43 @@ public:
           oH(args.out_h),
           oW(args.out_w),
           G(args.G),
+          H(args.H),
+          W(args.W),
+          pad_h(args.pad_h),
+          pad_w(args.pad_w),
           n_groups(n_grp),
           cu_count(cu_cnt),
           reduced_vgpr(reduced_vgpr_mem)
     {
-        std::ignore = ctx;
     }
 
-    bool IsC32ModePreferable() const
+    virtual ~ShaderModel() = default;
+
+    bool IsC32ModePreferable(uint64_t& out_predicted_clk) const
     {
+        bool result = false;
         PerfModelInfo perf_model_c16, perf_model_c32;
         perf_model_c16 = PerfPrediction(false);
         perf_model_c32 = PerfPrediction(true);
-        return perf_model_c32.predicted_clk <= perf_model_c16.predicted_clk;
+        if(perf_model_c32.predicted_clk <= perf_model_c16.predicted_clk)
+        {
+            result            = true;
+            out_predicted_clk = perf_model_c32.predicted_clk;
+        }
+        else
+        {
+            out_predicted_clk = perf_model_c16.predicted_clk;
+        }
+        return result;
     }
 
-private:
+    virtual bool IsShaderConstraintsMet() const = 0;
+    virtual float ComputeWti() const            = 0;
+
+protected:
+    // Divide two non-negative integers and return ceil of the quotient
+    uint64_t DivCeil(uint64_t numer, uint64_t denom) const { return (numer + denom - 1) / denom; }
+    uint64_t RoundUpToMultiple(uint64_t val, uint64_t mul) const { return DivCeil(val, mul) * mul; }
     PerfModelInfo PerfPrediction(bool c32_mode) const
     {
         constexpr uint64_t t_R  = 3;
@@ -161,10 +165,10 @@ private:
         constexpr uint64_t t_oH = 2;
         constexpr uint64_t t_oW = 2;
 
-        constexpr uint64_t nhw_factor   = 62;
-        constexpr uint64_t k_factor     = 16;
-        const uint64_t c_factor         = c32_mode ? 32 : 16;
-        constexpr uint64_t nhw_factor_g = RoundUpToMultiple(nhw_factor, 32);
+        constexpr uint64_t nhw_factor = 62;
+        constexpr uint64_t k_factor   = 16;
+        const uint64_t c_factor       = c32_mode ? 32 : 16;
+        const uint64_t nhw_factor_g   = RoundUpToMultiple(nhw_factor, 32);
 
         const uint64_t Rg  = RoundUpToMultiple(R, t_R);
         const uint64_t Sg  = RoundUpToMultiple(S, t_S);
@@ -198,20 +202,151 @@ private:
         const uint64_t ph_activ  = n_works_per_cu;
         const uint64_t ph_filter = f_relaods * c_loops;
 
-        // Constant parameters of the model valid for gfx1100. Values for other ASICs may be
-        // different, however as an approximate heuristic for choosing between C16 and C32
-        // modes it would be enough.
-        const uint64_t clk_start  = c32_mode ? 2600 : 1450;
-        const uint64_t clk_accum  = c32_mode ? 2938 : 1645;
-        const uint64_t clk_activ  = c32_mode ? 2989 : 1696;
-        const uint64_t clk_filter = c32_mode ? 2600 : 1450;
+        const uint64_t start_cost  = model_params[c32_mode ? 1 : 0].start_cost;
+        const uint64_t accum_cost  = model_params[c32_mode ? 1 : 0].accum_cost;
+        const uint64_t activ_cost  = model_params[c32_mode ? 1 : 0].activ_cost;
+        const uint64_t filter_cost = model_params[c32_mode ? 1 : 0].filter_cost;
 
-        out.predicted_clk = ph_start * clk_start + ph_accum * clk_accum + ph_activ * clk_activ +
-                            ph_filter * clk_filter;
-
+        out.predicted_clk = ph_start * start_cost + ph_accum * accum_cost + ph_activ * activ_cost +
+                            ph_filter * filter_cost;
         return out;
     }
 };
+
+class ShaderModelV2 : public ShaderModel
+{
+public:
+    static constexpr std::array<PerfModelCost, 2> GFX11_ModelParams{{
+        {1450, 1645, 1696, 1450}, // C16 mode
+        {2600, 2938, 2989, 2600}  // C32 mode
+    }};
+
+    ShaderModelV2(const WinoShaderArgsV2& args,
+                  uint32_t cu_cnt,
+                  uint32_t n_grp,
+                  bool reduced_vgpr_mem)
+        : ShaderModel(args, cu_cnt, n_grp, reduced_vgpr_mem)
+    {
+        model_params = GFX11_ModelParams;
+    }
+
+    bool IsShaderConstraintsMet() const override
+    {
+        // Current limitations:
+        // clang-format off
+        return N < PowOf2<16>()
+            && C < PowOf2<16>()
+            && H < PowOf2<16>()
+            && W < PowOf2<16>()
+            && pad_h >= std::numeric_limits<int16_t>::min() && pad_h <= std::numeric_limits<int16_t>::max()
+            && pad_w >= std::numeric_limits<int16_t>::min() && pad_w <= std::numeric_limits<int16_t>::max()
+            && oH < PowOf2<16>()
+            && oW < PowOf2<16>() - 3
+            && R <= 3
+            && S <= 3
+            && (static_cast<uint64_t>(N - 1) * C + 1) * H * W < PowOf2<31>()
+            && (static_cast<uint64_t>(N - 1) * K + 1) * oH * oW < PowOf2<31>()
+            && DivCeil(K, 16) <= n_groups
+            && G == 1;
+        // clang-format on
+    }
+
+    float ComputeWti() const override { return default_wti; }
+};
+
+class ShaderModelV4 : public ShaderModel
+{
+public:
+    static constexpr uint64_t GFX12_MACRate = 512; // Float16 MAC operations per CU per clock
+    static constexpr std::array<PerfModelCost, 2> GFX12_ModelParams{{
+        {1010, 1343, 1495, 1010}, // C16 mode
+        {1746, 2287, 2443, 1746}  // C32 mode
+    }};
+
+    ShaderModelV4(const WinoShaderArgsV2& args,
+                  uint32_t cu_cnt,
+                  uint32_t n_grp,
+                  bool reduced_vgpr_mem)
+        : ShaderModel(args, cu_cnt, n_grp, reduced_vgpr_mem)
+    {
+        model_params = GFX12_ModelParams;
+    }
+
+    bool IsShaderConstraintsMet() const override
+    {
+        // clang-format off
+        return N < PowOf2<16>()
+            && G < PowOf2<16>()
+            && C < PowOf2<16>()
+            && K < PowOf2<16>()
+            && H < PowOf2<16>()
+            && W < PowOf2<16>()
+            && R <= 3
+            && S <= 3
+            && G * K < (1LL << 16)
+            && G * C < (1LL << 16)
+            && oH < PowOf2<16>()
+            && oW < PowOf2<16>() - 3
+            && ((G * K - 1) * C + 1) * R * S < (1LL << 28)
+            && (static_cast<uint64_t>(N - 1) * G * C + 1) * H * W < PowOf2<31>()
+            && (static_cast<uint64_t>(N - 1) * G * K + 1) * oH * oW < PowOf2<31>()
+            && pad_h + static_cast<int64_t>(H) <= (1LL << 16)
+            && pad_w + static_cast<int64_t>(W) <= (1LL << 16)
+            && abs(pad_h) + oH + R             <= (1LL << 16)
+            && abs(pad_w) + oW + S             <= (1LL << 16)
+            && DivCeil(K, 16) <= n_groups;
+        // clang-format on
+    }
+
+    float ComputeWti() const override
+    {
+        const uint64_t macs          = N * G * K * C * oH * R * oW * S;
+        const float ideal_direct_clk = static_cast<float>(macs) / GFX12_MACRate / cu_count;
+        uint64_t predicted_clk       = 0;
+        bool is_c32_mode             = IsC32ModePreferable(predicted_clk);
+        std::ignore                  = is_c32_mode;
+        return predicted_clk != 0 ? ideal_direct_clk / predicted_clk : default_wti;
+    }
+};
+
+// Factory class for creating appropriate shader model based on device architecture
+class ShaderModelFactory
+{
+public:
+    static std::unique_ptr<ShaderModel> Create(const std::string& dev_name,
+                                               const WinoShaderArgsV2& args,
+                                               uint32_t cu_count,
+                                               uint32_t n_groups,
+                                               bool reduced_vgpr_mem)
+    {
+        if(StartsWith(dev_name, "gfx11"))
+        {
+            return std::make_unique<ShaderModelV2>(args, cu_count, n_groups, reduced_vgpr_mem);
+        }
+        else if(StartsWith(dev_name, "gfx12"))
+        {
+            return std::make_unique<ShaderModelV4>(args, cu_count, n_groups, reduced_vgpr_mem);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError, "Unsupported device architecture: " + dev_name);
+        }
+    }
+};
+
+bool IsShaderConstraintsMet(const WinoShaderArgsV2& args,
+                            uint32_t n_groups,
+                            const std::string& dev_name)
+{
+    const bool reduced_vgpr_mem = GpuHasReducedVGPRMem(dev_name);
+    // The cu_count is not required for shader constraint checks.
+    // It is simply assigned the value of n_groups for reference.
+    const uint32_t cu_count = n_groups;
+
+    auto shader_model =
+        ShaderModelFactory::Create(dev_name, args, cu_count, n_groups, reduced_vgpr_mem);
+    return shader_model->IsShaderConstraintsMet();
+}
 
 template <uint32_t Winodata, uint32_t Winofilter>
 struct ConvWinoFuryRxSCommon
@@ -251,8 +386,8 @@ bool ConvWinoFuryRxSCommon<Winodata, Winofilter>::IsApplicable(const ExecutionCo
         return false;
 
     const auto dev_name = ctx.GetStream().GetDeviceName();
-    // All gfx11 ASICs are supported
-    if(!StartsWith(dev_name, "gfx11"))
+    // All gfx11/gfx12 ASICs are supported
+    if(!(StartsWith(dev_name, "gfx11") || StartsWith(dev_name, "gfx12")))
         return false;
 
     if(StartsWith(dev_name, "gfx115"))
@@ -276,17 +411,30 @@ bool ConvWinoFuryRxSCommon<Winodata, Winofilter>::IsApplicable(const ExecutionCo
     const auto cu_count = ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto n_groups = GetNGroups(cu_count);
 
-    return IsShaderConstraintsMet(args, n_groups);
+    return IsShaderConstraintsMet(args, n_groups, dev_name);
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
 float ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWti(const ExecutionContext& ctx,
                                                           const ProblemDescription& problem)
 {
-    std::ignore = ctx;
     std::ignore = problem;
 
-    return -2.0; // Unknown WTI
+    const auto dev_name         = ctx.GetStream().GetDeviceName();
+    const auto cu_count         = ctx.GetStream().GetMaxHardwareComputeUnits();
+    const auto n_groups         = GetNGroups(cu_count);
+    const bool reduced_vgpr_mem = GpuHasReducedVGPRMem(dev_name);
+    WinoShaderArgsV2 args;
+
+    // Main convolution parameters
+    if(!args.SetConvParams(problem))
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+
+    auto shader_model =
+        ShaderModelFactory::Create(dev_name, args, cu_count, n_groups, reduced_vgpr_mem);
+    return shader_model->ComputeWti();
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
@@ -329,9 +477,18 @@ ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext&
         MIOPEN_THROW(miopenStatusInternalError);
     }
 
-    const auto shader_model = ShaderModel(ctx, args, cu_count, n_groups, reduced_vgpr_mem);
+    if(!problem.IsFp16())
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+
+    auto shader_model =
+        ShaderModelFactory::Create(dev_name, args, cu_count, n_groups, reduced_vgpr_mem);
     // For ASICs with redused VGPR memory we have only c16 kernel
-    const bool c32_mode = reduced_vgpr_mem ? false : shader_model.IsC32ModePreferable();
+    uint64_t predicted_clk = 0;
+    const bool c32_mode =
+        reduced_vgpr_mem ? false : shader_model->IsC32ModePreferable(predicted_clk);
+    std::ignore = predicted_clk;
 
     // Warning
     static bool IsWarned = false;
@@ -346,37 +503,36 @@ ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext&
         IsWarned = true;
     }
 
-    // Kernel name & file
-    const std::string kernel_version = "_v2_4_1";
-    std::string kernel_name          = "miopenSp3AsmConvFury" + kernel_version;
-    std::string kernel_file          = "Conv_Winograd_Fury" + kernel_version;
+    // Build up kernel name & file
+    std::string kernel_version = "_v2_4_1";
+    std::string kernel_name    = "miopenSp3AsmConvFury";
+    std::string kernel_file    = "Conv_Winograd_Fury";
+    std::string kernel_postfix = "_fp16_fp16acc";
+    std::string kernel_arch    = "_gfx11";
 
-    if(StartsWith(dev_name, "gfx11"))
-    {
-        kernel_name += "_gfx11";
-        kernel_name += reduced_vgpr_mem ? "_1024vgprs" : "_1536vgprs";
-    }
-    else
-    {
+    const bool is_gfx11 = StartsWith(dev_name, "gfx11");
+    const bool is_gfx12 = StartsWith(dev_name, "gfx12");
+
+    if(!is_gfx11 && !is_gfx12)
         MIOPEN_THROW(miopenStatusInternalError);
-    }
 
-    std::string kernel_postfix;
-
-    if(problem.IsFp16())
+    if(is_gfx12)
     {
-        kernel_postfix += "_fp16_fp16acc";
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusInternalError);
+        kernel_version = "_v4_6_0";
+        kernel_arch    = "_gfx12";
+        kernel_postfix = "_fp16_fp32acc";
     }
 
     kernel_postfix += IS2X3 ? "_f2x3" : "_f3x2";
     kernel_postfix += c32_mode ? "_c32" : "_c16";
     kernel_postfix += "_stride1";
 
+    kernel_name += kernel_version;
+    kernel_name += kernel_arch;
+    kernel_name += reduced_vgpr_mem ? "_1024vgprs" : "_1536vgprs";
     kernel_name += kernel_postfix;
+
+    kernel_file += kernel_version;
     kernel_file += kernel_postfix + ".s";
 
     // KernelInfo
