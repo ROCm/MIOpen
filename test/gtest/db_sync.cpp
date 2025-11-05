@@ -363,6 +363,7 @@ void GetPerfDbVals(const fs::path& filename,
     const auto& perf_db =
         miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::PerfDb, filename.string(), true);
     const auto& perf_db_map = perf_db.GetCacheMap();
+    auto& perf_db_rw = miopen::RamDb::GetCached(miopen::DbKinds::PerfDb, filename.string(), false);
 
     std::ostringstream ss;
     conv::ProblemDescription::VisitAll(problem_config, [&](auto&& value, auto&&) {
@@ -374,6 +375,7 @@ void GetPerfDbVals(const fs::path& filename,
 
     if(perf_db_map.find(key) != perf_db_map.end())
     {
+        bool duplicate = false;
         std::istringstream pdb_line{perf_db_map.at(key).content};
         char fragment[1024];
         while(pdb_line.getline(fragment, 1024, ';'))
@@ -383,7 +385,26 @@ void GetPerfDbVals(const fs::path& filename,
             ASSERT_TRUE(id_size != std::string::npos) << "Ill formed value: " << id_val;
             auto id  = id_val.substr(0, id_size);
             auto cfg = id_val.substr(id_size + 1);
+
+            if(env::enabled(MIOPEN_DBSYNC_CLEAN) && vals.find(id) != vals.end())
+            {
+                duplicate = true;
+                MIOPEN_LOG_E("Duplicate ID: " << id << "; key: " << key);
+                continue;
+            }
+            else
+            {
+                EXPECT_TRUE(vals.count(id) == 0)
+                    << "Duplicate ID in perf DB: " << id << "; key: " << key;
+            }
+
             vals.emplace(id, cfg);
+        }
+        if(env::enabled(MIOPEN_DBSYNC_CLEAN) && duplicate)
+        {
+            MIOPEN_LOG_W("Rewrite Record at key: " << key);
+            const auto record = *perf_db_rw.FindRecord(problem_config);
+            perf_db_rw.StoreRecord(record);
         }
         select_query = " Loading " + key + " from " + filename.string();
     }
