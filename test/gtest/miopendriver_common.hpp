@@ -68,17 +68,12 @@ static inline miopen::fs::path MIOpenDriverExePath()
     static const std::string MIOpenDriverExeName = "MIOpenDriver";
 
 #ifdef __linux__
-    miopen::fs::path path = {""};
-    Dl_info info;
+    miopen::fs::path path = miopen::fs::canonical("/proc/self/exe");
 
-    if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
-    {
-        path = miopen::fs::canonical(miopen::fs::path{info.dli_fname});
-        if(path.empty())
-            return path;
+    if(path.empty())
+        return path;
 
-        path = path.parent_path();
-    }
+    path = path.parent_path();
     return path /= MIOpenDriverExeName;
 #else
     return {MIOpenDriverExeName};
