@@ -77,10 +77,13 @@ default pipe_lines_depth, 2
 default chunk_size, 16
 default reverse_inout, 0
 default reverse_weights, 0
+default weights_layout, 0
 
 .set local_input_channels, input_channels
 .set local_output_channels, output_channels
 .set local_reverse_weights, reverse_weights
+// used in conv_sizes.inc
+.set local_weights_layout, weights_layout
 
 // gfx90a requires 64bit aligned vgpr tuples
 // Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
@@ -111,6 +114,7 @@ vec_size = elements_in_dword
    swap in_ptr_off, out_ptr_off
    swap gid_y, gid_z
    local_reverse_weights = !local_reverse_weights
+   local_weights_layout = !local_weights_layout
 .endif
 
 static_assert (pad_h == 1 && pad_w == 1)

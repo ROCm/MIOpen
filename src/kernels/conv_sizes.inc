@@ -27,7 +27,7 @@
 nbytes = 4 / vec_size
 // weights
 weights_per_filter = wei_w * wei_h
-.if weights_layout == 0 // KCHW
+.if local_weights_layout == 0 // KCHW
 	.set filter_c_stride, nbytes * weights_per_filter
 	.set filter_k_stride, nbytes * weights_per_filter * input_channels / group_counts
 .else // CKHW
