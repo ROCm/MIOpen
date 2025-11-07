@@ -97,10 +97,16 @@ both database files to the source directory:
 
   cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On ..
 
-To customize the database paths, use the ``MIOPEN_SYSTEM_DB_PATH`` (for the System PerfDb)
-and ``MIOPEN_USER_DB_PATH`` (for the User PerfDb) CMake variables.
+To customize the database paths, use the ``MIOPEN_SYSTEM_DB_PATH`` (for the System PerfDb and FindDb)
+and ``MIOPEN_USER_DB_PATH`` (for the User PerfDb and FindDb) CMake variables.
+These db location variables are also settable at runtime through the environment.
 
-To learn more, see :doc:`using the performance database <../conceptual/perfdb>`.
+It is safe to share the User Db location on a networked file system, however it is required that the machines
+accessing the shared files have unique hostnames for the file sharing implemented in MIOpen to function correctly.
+
+To learn more, see
+:doc:`using the performance database <../conceptual/perfdb>`
+:doc:`using the find database <../conceptual/finddb>`
 
 Persistent program cache
 --------------------------------------------------------------------------------------------------------
