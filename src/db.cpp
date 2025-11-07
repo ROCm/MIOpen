@@ -88,7 +88,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecord(const std::string& key)
 {
     if(DisableUserDbFileIO)
         return {};
-    const auto lock = shared_lock(lock_file, GetLockTimeout());
+    const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return FindRecordUnsafe(key, nullptr);
 }
@@ -263,7 +263,8 @@ bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos
             return false;
         }
 
-        const auto temp_name = filename + ".temp";
+        const auto temp_name = filename.string() + "." + sysinfo::GetSystemHostname() + "." +
+                               std::to_string(getpid()) + ".temp";
         std::ofstream to(temp_name, std::ios::binary);
 
         if(!to)
@@ -278,15 +279,21 @@ bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos
         Copy(from, to, pos->begin);
         record.WriteContents(to);
         from.seekg(pos->end);
-        Copy(from, to, from_size - pos->end);
+        if(from_size > pos->end)
+            Copy(from, to, from_size - pos->end);
 
         from.close();
         to.close();
 
-        fs::remove(filename);
+        // rename atomically deletes and replaces filename
         fs::rename(temp_name, filename);
         /// \todo What if rename fails? Thou shalt not loose the original file.
         fs::permissions(filename, FS_ENUM_PERMS_ALL);
+        while(fs::exists(temp_name))
+        {
+            MIOPEN_LOG_I2("Waiting for rename ");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     }
     return true;
 }
