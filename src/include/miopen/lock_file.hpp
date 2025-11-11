@@ -114,7 +114,7 @@ public:
         if(age > timeout)
         {
             MIOPEN_LOG_I2("Removing Stale Lock < " << lockfile_path.string()
-                                                   << ", Age(ms): " << age);
+                                                   << ", Age(ms): " << age.count());
             fs::remove(lockfile_path);
             return true;
         }
