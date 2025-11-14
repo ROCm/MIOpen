@@ -6,6 +6,10 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 ### Optimized
 * [Conv] Improve Composable Kernel (CK) kernel selection during tuning.
 
+### Changed
+
+* `MIOPEN_FIND_ENFORCE` no longer forces Normal for `MIOPEN_FIND_MODE` when using non-database update operations.
+
 ## MIOpen 3.5.1 for ROCm 7.1.0
 ### Added
 

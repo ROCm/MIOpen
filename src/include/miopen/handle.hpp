@@ -259,14 +259,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     {
         invokers.Register({config, solver}, invoker);
         if(algo.has_value())
-            SetAsFound1_0(config, *algo, solver);
-    }
-
-    void SetAsFound1_0(const NetworkConfig& config,
-                       const AlgorithmName& algo,
-                       const std::string& solver) const
-    {
-        invokers.SetAsFound1_0(config, algo, solver);
+            invokers.SetAsFound1_0(config, *algo, solver);
     }
 
     std::optional<Invoker> GetInvoker(const NetworkConfig& config,

@@ -50,6 +50,7 @@ Enable this feature using these commands:
 
 .. code:: bash
 
+  export MIOPEN_FIND_MODE=3  # Hybrid. Can alternatively use Normal (1) for slower, but more comprehensive results or Fast (2) for faster, but less comprehensive results
   export MIOPEN_FIND_ENFORCE=3
   export MIOPEN_USER_DB_PATH="/user/specified/directory"
   export MIOPEN_SYSTEM_DB_PATH="$MIOPEN_USER_DB_PATH"
@@ -80,6 +81,7 @@ The cache directory defaults to "$HOME/.cache/miopen".
 
 Post tuning
 ==========================================================
+
 Unset ``MIOPEN_FIND_MODE`` and ``MIOPEN_FIND_ENFORCE`` to return to the default behavior. The behavior when these are set is expected
 to be the same as the default when all shapes are tuned, but some first run delay has been observed.
 
@@ -96,3 +98,19 @@ Unset these variables using these commands:
   unset MIOPEN_FIND_MODE
   unset MIOPEN_FIND_ENFORCE
   unset MIOPEN_SYSTEM_DB_PATH
+
+Troubleshooting
+==========================================================
+
+**Warning Messages**
+
+If you see warning messages like:
+
+.. code::
+
+   Unsafe combination: Specified find mode and enforcement may lead to incomplete database entries.
+   MIOPEN_FIND_MODE is set to NORMAL due to unsafe combination with MIOPEN_FIND_ENFORCE
+
+This means MIOpen detected an unsafe combination and automatically corrected it. Your tuning will proceed safely, but you might want to adjust your environment variables to use a recommended safe combination.
+
+See :ref:`Find mode and enforcement combinations <find_mode_and_enforce_combinations>` for more details.
