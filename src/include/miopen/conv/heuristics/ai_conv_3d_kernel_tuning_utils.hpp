@@ -30,16 +30,17 @@
 #include <string>
 #include <miopen/config.hpp>
 #include <miopen/conv/problem_description.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #include <miopen/conv/heuristics/ai_candidate_selection.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 namespace miopen {
 namespace solver {
 namespace conv {
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 const miopen::ExecutionContext& GetDummyCtx();
 
 MIOPEN_INTERNALS_EXPORT std::map<std::string, float>
