@@ -460,9 +460,9 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
         MIOPEN_LOG_I2("Step 1: Index override not set, proceeding to next step");
     }
 
-    // 2. Hard-coded heuristics for BF16/FP16 on gfx942 only
+    // 2. Hard-coded heuristics for BF16/FP16 on gfx942 and gfx950 only
     if((problem.GetInDataType() == miopenBFloat16 || problem.GetInDataType() == miopenHalf) &&
-       ctx.GetStream().GetDeviceName() == "gfx942")
+       (ctx.GetStream().GetDeviceName() == "gfx942" || ctx.GetStream().GetDeviceName() == "gfx950"))
     {
         MIOPEN_LOG_I2("Step 2: Attempting hard-coded heuristics for "
                       << (problem.GetInDataType() == miopenBFloat16 ? "BF16" : "FP16")
