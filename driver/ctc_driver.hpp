@@ -177,6 +177,7 @@ int CTCDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
     inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
+    inflags.AddInputFlag("parallel", 'p', "0", "Paralellize CPU implementation (Default=0)", "int");
     inflags.AddInputFlag(
         "ctcalgo",
         'a',
@@ -409,6 +410,7 @@ int CTCDriver<Tgpu, Tref>::RunCTCLossCPU()
                                     losses_host,
                                     gradients_host,
                                     workspace_host,
+                                    inflags.GetValueInt("parallel") == 1,
                                     blank_lb,
                                     apply_softmax,
                                     inflags.GetValueInt("verify_path"));
