@@ -100,7 +100,4 @@ using CPU_TestTensorSequence_FP16 = TestTensorSequence;
 
 TEST_P(CPU_TestTensorSequence_FP16, SeqTensorDescriptor) { RunTest(); };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_TestTensorSequence_FP16,
-                         testing::ValuesIn(GetTestCases()));
-
+INSTANTIATE_TEST_SUITE_P(Full, CPU_TestTensorSequence_FP16, testing::ValuesIn(GetTestCases()));
