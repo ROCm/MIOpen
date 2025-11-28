@@ -38,12 +38,12 @@
 
 #include <miopen/gemm_v2.hpp>
 #include <miopen/miopen.h>
+#include <miopen/ford.hpp>
 
 #include <algorithm>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <numeric>
 #include <vector>
 
 #define GEMM_DRIVER_DEBUG 0
@@ -69,7 +69,8 @@ void callCpuGemmStridedBatched(bool isColMajor,
                                int c_offset,
                                int ldc,
                                long long int strideC,
-                               int batch_count)
+                               int batch_count,
+                               bool parallel)
 {
     const T* a_ptr = static_cast<const T*>(A);
     const T* b_ptr = static_cast<const T*>(B);
@@ -87,9 +88,8 @@ void callCpuGemmStridedBatched(bool isColMajor,
         std::swap(strideA, strideB);
     }
 
-    for(int bi = 0; bi < batch_count; ++bi)
-    {
-        for(int mi = 0; mi < m; ++mi)
+    auto work = [&](const int mi) {
+        for(int bi = 0; bi < batch_count; ++bi)
         {
             for(int ni = 0; ni < n; ++ni)
             {
@@ -107,6 +107,18 @@ void callCpuGemmStridedBatched(bool isColMajor,
                     static_cast<T>(static_cast<double>(alpha) * y +
                                    static_cast<double>(beta) * static_cast<double>(c_ptr[cindex]));
             }
+        }
+    };
+
+    if(parallel)
+    {
+        miopen::par_ford(m)(work);
+    }
+    else
+    {
+        for(int mi = 0; mi < m; mi++)
+        {
+            work(mi);
         }
     }
 }
@@ -134,7 +146,7 @@ public:
 
     int VerifyBackward() override;
     int VerifyForward() override;
-    ~GemmDriver() override {}
+    ~GemmDriver() override = default;
 
 private:
     InputFlags inflags;
@@ -149,6 +161,7 @@ private:
     std::vector<T> chost;
 
     T alpha, beta;
+    bool parallel;
 
     miopen::GemmDescriptor gemm_desc = {
         false, false, false, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.0f, 0.0f, miopenFloat, false};
@@ -169,8 +182,9 @@ int GemmDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("transA", 'u', "0", "Transpose A matrix (Default=0)", "int");
     inflags.AddInputFlag("transB", 'v', "0", "Transpose B matrix (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
-    inflags.AddInputFlag("verify", 'V', "0", "Verify Each Layer (Default=1)", "int");
+    inflags.AddInputFlag("verify", 'V', "0", "Verify Each Layer (Default=0)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+    inflags.AddInputFlag("parallel", 'p', "0", "Run CPU part in parallel (Default=0)", "int");
 
     return 0;
 }
@@ -184,6 +198,9 @@ int GemmDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    parallel = static_cast<bool>(inflags.GetValueInt("parallel"));
+
     return 0;
 }
 
@@ -257,9 +274,9 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
 #if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #endif
-    a_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, a_sz, sizeof(T)));
-    b_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(T)));
-    c_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, c_sz, sizeof(T)));
+    a_dev = std::make_unique<GPUMem>(ctx, a_sz, sizeof(T));
+    b_dev = std::make_unique<GPUMem>(ctx, b_sz, sizeof(T));
+    c_dev = std::make_unique<GPUMem>(ctx, c_sz, sizeof(T));
 
     a = std::vector<T>(a_sz);
     b = std::vector<T>(b_sz);
@@ -394,7 +411,8 @@ int GemmDriver<T>::RunForwardCPU()
                                  0,
                                  gemm_desc.ldc,
                                  gemm_desc.strideC,
-                                 gemm_desc.batch_count);
+                                 gemm_desc.batch_count,
+                                 parallel);
 
     return 0;
 }
