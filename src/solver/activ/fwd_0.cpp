@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -80,7 +80,6 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
 
     // short cut for packed tensors and 2D tensors with stride != width
     const auto x_lens = problem.GetXDesc().GetLengths();
-    const auto y_lens = problem.GetYDesc().GetLengths();
 
     const auto x_elem_sz = problem.GetXDesc().GetElementSize();
 
@@ -89,22 +88,31 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
                             : (x_lens.size() == 4) ? x_lens[3]
                                                    : x_lens[4]);
 
-    const auto packed    = problem.GetXDesc().IsPacked() && problem.GetYDesc().IsPacked();
-    const auto read_len  = (packed) ? x_elem_sz : x_width2D;
-    const auto read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
+    const auto packed       = problem.GetXDesc().IsPacked() && problem.GetYDesc().IsPacked();
+    const auto read_len     = (packed) ? x_elem_sz : x_width2D;
+    const auto element_size = (problem.GetXDesc().GetType() == miopenHalf) ? 2 : 4;
+    const auto read_unit    = (read_len % 8 == 0 && element_size == 2) ? 8
+                              : (read_len % 4 == 0)                    ? 4
+                              : (read_len % 2 == 0)                    ? 2
+                                                                       : 1;
 
-    const auto READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
+    const auto READ_TYPE = ((read_unit == 1) ? "FP_TYPE" : "FP_TYPE" + std::to_string(read_unit));
 
     const auto height = (x_lens.size() == 2)   ? x_lens[0]
                         : (x_lens.size() == 3) ? x_lens[1]
                         : (x_lens.size() == 4) ? x_lens[2]
                                                : x_lens[3];
 
+    const auto map_size_aligned = (read_len + read_unit - 1) / read_unit;
+
+    const auto local_work_size = 256;
+
     auto build_params = KernelBuildParameters{
         {"LITE"},
         {"MIOPEN_READ_UNIT", read_unit},
         {"MIOPEN_READ_TYPE", READ_TYPE},
         {"MIOPEN_NRN_OP_ID", problem.GetActivDesc().GetMode()},
+        {"LOCAL_SIZE", local_work_size},
     };
 
     if(problem.GetXDesc().GetType() == miopenFloat)
@@ -127,20 +135,21 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
 
     {
         auto kernel_info         = KernelInfo{};
-        kernel_info.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+        kernel_info.comp_options = build_params.GenerateFor(kbp::HIP{});
 
-        kernel_info.l_wk.push_back(256);
+        kernel_info.l_wk.push_back(local_work_size);
         kernel_info.l_wk.push_back(1);
         kernel_info.l_wk.push_back(1);
 
-        const auto MAP_RD = read_len / read_unit;
+        const auto global_work_size =
+            ((map_size_aligned + local_work_size - 1) / local_work_size) * local_work_size;
 
-        kernel_info.g_wk.push_back(MAP_RD);
+        kernel_info.g_wk.push_back(global_work_size);
         kernel_info.g_wk.push_back(packed ? 1 : height);
         kernel_info.g_wk.push_back(1);
 
-        kernel_info.kernel_file = "MIOpenNeuron.cl";
-        kernel_info.kernel_name = (packed) ? "MIOpenActiveFwdLite" : "MIOpenActiveFwd2DLite";
+        kernel_info.kernel_file = "MIOpenNeuron.cpp";
+        kernel_info.kernel_name = packed ? "MIOpenActiveFwdLite" : "MIOpenActiveFwd2DLite";
 
         result.construction_params.push_back(kernel_info);
     }
@@ -159,6 +168,7 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
                 {
                     kernel(params.x,
                            params.y,
+                           static_cast<int>(map_size_aligned),
                            gamma,
                            beta,
                            alpha,
@@ -186,6 +196,8 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
 
                     kernel(params.x,
                            params.y,
+                           static_cast<int>(map_size_aligned),
+                           static_cast<int>(height),
                            gamma,
                            beta,
                            alpha,

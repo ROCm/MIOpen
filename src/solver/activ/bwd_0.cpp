@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -110,28 +110,35 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
     const auto& dxDesc = problem.GetDXDesc();
     const auto& dyDesc = problem.GetDYDesc();
 
-    const auto& x_lens  = xDesc.GetLengths();
     const auto& dx_lens = dxDesc.GetLengths();
 
     const auto dx_width2D = dx_lens[dx_lens.size() - 1];
-    const auto height     = x_lens[x_lens.size() - 2];
+    const auto dx_height  = dx_lens[dx_lens.size() - 2];
 
     const auto packed =
         xDesc.IsPacked() && yDesc.IsPacked() && dxDesc.IsPacked() && dyDesc.IsPacked();
 
-    const auto x_elem_sz = xDesc.GetElementSize();
+    const auto dx_elem_sz = dxDesc.GetElementSize();
 
-    const auto read_len = (packed) ? x_elem_sz : dx_width2D;
+    const auto read_len = (packed) ? dx_elem_sz : dx_width2D;
 
-    const auto read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
-    const auto MAP_RD    = read_len / read_unit;
-    const auto READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
+    const auto element_size = (problem.GetXDesc().GetType() == miopenHalf) ? 2 : 4;
+    const auto read_unit    = (read_len % 8 == 0 && element_size == 2) ? 8
+                              : (read_len % 4 == 0)                    ? 4
+                              : (read_len % 2 == 0)                    ? 2
+                                                                       : 1;
+
+    const auto READ_TYPE = (read_unit == 1) ? "FP_TYPE" : "FP_TYPE" + std::to_string(read_unit);
+    const auto map_size_aligned = (read_len + read_unit - 1) / read_unit;
+
+    const auto local_work_size = 256;
 
     auto compiler_options = KernelBuildParameters{
         {"LITE"},
         {"MIOPEN_READ_UNIT", read_unit},
         {"MIOPEN_READ_TYPE", READ_TYPE},
         {"MIOPEN_NRN_OP_ID", problem.GetActivDesc().GetMode()},
+        {"LOCAL_SIZE", local_work_size},
     };
 
     if(xDesc.GetType() == miopenFloat)
@@ -148,18 +155,20 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
     {
         auto kernel = KernelInfo{};
 
-        kernel.comp_options = compiler_options.GenerateFor(kbp::OpenCL{});
-        kernel.kernel_file  = "MIOpenNeuron.cl";
+        kernel.comp_options = compiler_options.GenerateFor(kbp::HIP{});
+        kernel.kernel_file  = "MIOpenNeuron.cpp";
         kernel.kernel_name  = (packed) ? "MIOpenActiveBwdLite" : "MIOpenActiveBwd2DLite";
 
-        kernel.l_wk.push_back(256);
+        kernel.l_wk.push_back(local_work_size);
         kernel.l_wk.push_back(1);
         kernel.l_wk.push_back(1);
 
         // first dimension looks similar but for the packed it is a full image for the
         // non-packed 2D it's width
-        kernel.g_wk.push_back(MAP_RD);
-        kernel.g_wk.push_back(packed ? 1 : height);
+        const auto global_work_size =
+            ((map_size_aligned + local_work_size - 1) / local_work_size) * local_work_size;
+        kernel.g_wk.push_back(global_work_size);
+        kernel.g_wk.push_back(packed ? 1 : dx_height);
         kernel.g_wk.push_back(1);
 
         result.construction_params.push_back(kernel);
@@ -194,6 +203,7 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
                            dy,
                            x,
                            y,
+                           static_cast<int>(map_size_aligned),
                            f_diff_scale,
                            f_activ_gamma,
                            f_activ_beta,
@@ -224,6 +234,8 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
                            dy,
                            x,
                            y,
+                           static_cast<int>(map_size_aligned),
+                           static_cast<int>(dx_height),
                            f_diff_scale,
                            f_activ_gamma,
                            f_activ_beta,

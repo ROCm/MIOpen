@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,6 @@ namespace miopen {
 namespace solver {
 
 namespace activ {
-
 bool ActivFwdSolver1::IsApplicable(const ExecutionContext& context,
                                    const miopen::activ::ProblemDescription& problem) const
 {
@@ -153,10 +152,14 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
 
     int imode = problem.GetActivDesc().GetMode();
 
-    constexpr const auto hw_wave_sz  = 64;
-    constexpr const size_t read_unit = 4;
+    constexpr const auto hw_wave_sz = 64;
 
+    const auto element_size     = (xDesc.GetType() == miopenHalf) ? 2 : 4;
     const size_t map_size       = static_cast<size_t>(wIn) * hIn * nIn * cIn;
+    const auto read_unit        = (map_size % 8 == 0 && element_size == 2) ? 8
+                                  : (map_size % 4 == 0)                    ? 4
+                                  : (map_size % 2 == 0)                    ? 2
+                                                                           : 1;
     const auto map_size_aligned = (map_size + read_unit - 1) / read_unit;
     const auto N_PIXS_OFF       = map_size - (map_size / read_unit) * read_unit;
 
@@ -165,6 +168,7 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
     const auto grp_tile0 =
         std::min(static_cast<int>((glbl_wk + hw_wave_sz - 1) / hw_wave_sz) * hw_wave_sz, 256);
     const auto grp_tile1 = 1;
+    const auto grp_tile2 = 1;
 
     auto compiler_options = KernelBuildParameters{
         {"MIOPEN_N_IN", nIn},
@@ -205,10 +209,10 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
         {"MIOPEN_DOUT_BLOCK_SZ", 1},
         {"MIOPEN_NRN_GROUP_SZ0", grp_tile0},
         {"MIOPEN_NRN_GROUP_SZ1", grp_tile1},
+        {"MIOPEN_NRN_GROUP_SZ2", grp_tile2},
         {"MIOPEN_NRN_OP_ID", static_cast<int>(imode)},
         {"MIOPEN_N_PIXS_OFF", N_PIXS_OFF},
         {"MIOPEN_MAP_SZ", map_size},
-        {"MIOPEN_MAP_SZ_ALIGNED", map_size_aligned},
         {"MIOPEN_READ_UNIT", read_unit},
     };
 
@@ -234,15 +238,17 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
     auto solution = ConvSolution{miopenStatusSuccess};
 
     auto kernel         = KernelInfo{};
-    kernel.kernel_file  = "MIOpenNeuron.cl";
+    kernel.kernel_file  = "MIOpenNeuron.cpp";
     kernel.kernel_name  = "MIOpenNeuronFwd";
-    kernel.comp_options = compiler_options.GenerateFor(kbp::OpenCL{});
+    kernel.comp_options = compiler_options.GenerateFor(kbp::HIP{});
 
     kernel.l_wk.push_back(grp_tile0);
     kernel.l_wk.push_back(grp_tile1);
     kernel.l_wk.push_back(1);
 
-    kernel.g_wk.push_back(glbl_wk);
+    const auto global_work_size = ((glbl_wk + grp_tile0 - 1) / grp_tile0) * grp_tile0;
+
+    kernel.g_wk.push_back(global_work_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
 
@@ -256,6 +262,7 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 k(params.x,
                   params.y,
+                  static_cast<int>(map_size_aligned),
                   as_float(params.gamma),
                   as_float(params.beta),
                   as_float(params.alpha),

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -119,8 +119,9 @@ miopenStatus_t ActivationDescriptor::Backward(const Handle& handle,
         return tmp;
     }();
 
-    const auto algo    = AlgorithmName{"miopenActivationBackward"};
-    const auto solvers = solver::SolverContainer<solver::activ::ActivBwdSolver0>{};
+    const auto algo = AlgorithmName{"miopenActivationBackward"};
+    const auto solvers =
+        solver::SolverContainer<solver::activ::ActivBwdSolver0, solver::activ::ActivBwdSolver1>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     return miopenStatusSuccess;
 }
