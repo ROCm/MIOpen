@@ -723,6 +723,7 @@ struct ctc_driver : test_driver
 
     void run()
     {
+        /// TODO fp16 support, see https://github.com/ROCm/rocm-libraries/issues/2866
         if(type != miopenFloat)
             return;
 
