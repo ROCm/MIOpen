@@ -23,10 +23,6 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 * [BatchNorm] Fixed issue where batchnorm tuning would give incorrect results
 * Fixed issue where generic search was not providing sufficient warm-up for some kernels
 
-### Changed
-
-* `MIOPEN_FIND_ENFORCE` no longer forces Normal for `MIOPEN_FIND_MODE` when using non-database update operations.
-
 ## MIOpen 3.5.1 for ROCm 7.1.0
 ### Added
 
