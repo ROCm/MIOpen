@@ -231,8 +231,7 @@ static void RunGemmDescriptors(const TestCase& testCase, miopenDataType_t dataTy
         auto error = miopen::rms_range(workspaceC_host, workspaceC_device.Read<std::vector<T>>());
         EXPECT_TRUE(std::isfinite(error));
 
-        const double tolerance =
-            ((sizeof(T) == 4) ? static_cast<double>(1e-6) : static_cast<double>(7e-2));
+        const double tolerance = ((sizeof(T) == 4) ? 1e-6 : 7e-2);
         EXPECT_LT(error, tolerance);
     }
     else

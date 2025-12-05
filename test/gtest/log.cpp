@@ -184,13 +184,13 @@ struct CreateBNormFusionPlan
     miopen::Allocator::ManageDataPtr estMean_dev;
     miopen::Allocator::ManageDataPtr estVariance_dev;
     miopenActivationMode_t activ_mode = miopenActivationRELU;
-    const float alpha                 = static_cast<float>(1.0f);
-    const float beta                  = static_cast<float>(0);
-    const float activ_alpha           = static_cast<double>(0.5f);
-    const float activ_beta            = static_cast<double>(0.5f);
-    const float activ_gamma           = static_cast<double>(0.5f);
-    double epsilon                    = 1.0e-5;
-    std::vector<int> input_lens       = {64, 64, 56, 56};
+    const float alpha{1.0f};
+    const float beta{0.0f};
+    const float activ_alpha{0.5f};
+    const float activ_beta{0.5f};
+    const float activ_gamma{0.5f};
+    double epsilon{1.0e-5};
+    std::vector<int> input_lens = {64, 64, 56, 56};
 
     void Init()
     {

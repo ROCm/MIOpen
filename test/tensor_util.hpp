@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,12 +27,9 @@
 #ifndef GUARD_TENSOR_UTIL_HPP
 #define GUARD_TENSOR_UTIL_HPP
 
-#include <type_traits>
-
-#include <miopen/miopen.h>
-#include <miopen/filesystem.hpp>
-#include <miopen/tensor.hpp>
 #include "tensor_holder.hpp"
+#include <miopen/stringutils.hpp>
+#include <miopen/filesystem.hpp>
 
 namespace fs = miopen::fs;
 
@@ -269,6 +266,25 @@ void print_tensor(const tensor<T>& tensor_val,
     }
 
     std::cout << "\n=================end=====================\n";
+}
+
+template <typename T>
+size_t getCacheSizeLimit(const std::string& deviceName)
+{
+    size_t mb = 4; // default: 2x L2 size (2MB)
+    if(miopen::StartsWith(deviceName, "gfx803"))
+        mb = 4; // twice the available L2 (2MB)
+    else if(miopen::StartsWith(deviceName, "gfx900") || miopen::StartsWith(deviceName, "gfx906"))
+        mb = 8; // twice the available L2 (4MB)
+    else if(miopen::StartsWith(deviceName, "gfx90a") || miopen::StartsWith(deviceName, "gfx908"))
+        mb = 16; // twice the available L2 (8MB)
+    else if(miopen::StartsWith(deviceName, "gfx942"))
+        mb = 256; // L3 size (256MB)
+    else if(miopen::StartsWith(deviceName, "gfx103"))
+        mb = 128; // L3 size (128MB)
+
+    mb = (mb * 1024ul * 1024ul); // convert to MiB
+    return (mb / sizeof(T));     // returning number of elements of type T
 }
 
 #endif
