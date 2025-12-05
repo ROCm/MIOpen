@@ -88,6 +88,12 @@ std::vector<T> Network3DBN();
 template <typename T>
 std::vector<T> Network3DSerialCase();
 
+template <typename T>
+std::vector<T> Network2DInvalidTraining();
+
+template <typename T>
+std::vector<T> Network3DInvalidTraining();
+
 template <>
 inline std::vector<BN2DTestCase> Network2DLarge()
 {
@@ -168,6 +174,9 @@ inline std::vector<BN2DTestCase> Network2DSmall()
         {192, 2, 8, 8, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 56, 56, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 128, 256, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
+        // Edge cases - minimum valid dimensions for Spatial BN training (N*H*W > 1)
+        {2, 256, 1, 1, miopen::batchnorm::Direction::ForwardTraining, 1, 0},  // N*H*W = 2 (min batch)
+        {2, 256, 1, 1, miopen::batchnorm::Direction::Backward, 1, 0},         // N*H*W = 2 (min spatial)
     };
     // clang-format on
 }
@@ -179,7 +188,36 @@ inline std::vector<BN3DTestCase> Network3DBN()
     return {
         {2, 2, 3, 224, 224, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 132, 28, 28, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 16, 128, 128, miopen::batchnorm::Direction::ForwardTraining, 1, 0}
+        {16, 8, 16, 128, 128, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
+        // Edge cases - minimum valid dimensions for Spatial BN training (N*D*H*W > 1)
+        {2, 256, 1, 1, 1, miopen::batchnorm::Direction::ForwardTraining, 1, 0},  // N*D*H*W = 2 (min batch)
+        {2, 256, 1, 1, 1, miopen::batchnorm::Direction::Backward, 1, 0},         // N*D*H*W = 2 (min spatial D)
+    };
+    // clang-format on
+}
+
+// Invalid training cases for validation testing (PyTorch rejects these)
+// These should only be used by validation tests that expect API rejection
+template <>
+inline std::vector<BN2DTestCase> Network2DInvalidTraining()
+{
+    // clang-format off
+    return {
+        // N*H*W = 1 cases (invalid for Spatial BN training)
+        {1, 256, 1, 1, miopen::batchnorm::Direction::ForwardTraining, 0, 0},  // Should be rejected
+        {1, 256, 1, 1, miopen::batchnorm::Direction::Backward, 0, 0},         // Should be rejected
+    };
+    // clang-format on
+}
+
+template <>
+inline std::vector<BN3DTestCase> Network3DInvalidTraining()
+{
+    // clang-format off
+    return {
+        // N*D*H*W = 1 cases (invalid for Spatial BN training)
+        {1, 256, 1, 1, 1, miopen::batchnorm::Direction::ForwardTraining, 0, 0},  // Should be rejected
+        {1, 256, 1, 1, 1, miopen::batchnorm::Direction::Backward, 0, 0},         // Should be rejected
     };
     // clang-format on
 }
