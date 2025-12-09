@@ -88,6 +88,8 @@ and :doc:`Performance database <../conceptual/perfdb>`.
         | "HYBRID" or 3: Hybrid find (FindDb hit or full find)
         | 4: Reserved (do not use)
         | "DYNAMIC_HYBRID" or 5: Dynamic hybrid (default, skip non-dynamic kernels)
+        | "TRUST_VERIFY" or 6: Trust verify (use UserFindDb or FindDb fallback or skip non-dynamic kernels fallback with timebox)
+        | "TRUST_VERIFY_FULL" or 7: Trust verify full (same as trust verify without timebox)
 
     * - | ``MIOPEN_FIND_ENFORCE``
         | Controls auto-tune behavior and database updates.

@@ -172,7 +172,7 @@ public:
     {
         // TrustVerify uses user db as groud truth, disable if no user db
 #if MIOPEN_DISABLE_USERDB
-        return false
+        return false;
 #else
         return (value == Values::TrustVerify || value == Values::TrustVerifyFull) &&
                IsEnabled(context);
