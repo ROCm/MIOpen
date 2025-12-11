@@ -66,6 +66,7 @@ bool IsTestSupportedForDevice()
 
 class GPU_Conv2dTuningDynamicFwdDlops_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 TEST_P(GPU_Conv2dTuningDynamicFwdDlops_FP16,

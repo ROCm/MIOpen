@@ -76,10 +76,12 @@ using TestCase = decltype(GetTestCases())::value_type;
 class GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32
     : public FloatTestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 bool IsTestSupportedForDevice()

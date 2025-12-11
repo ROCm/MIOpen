@@ -155,6 +155,7 @@ bool IsTestSupportedForDevice()
 
 class GPU_Conv2dDefaultIGemmDynamicDLops_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 TEST_P(GPU_Conv2dDefaultIGemmDynamicDLops_FP16, HalfTest_conv_igemm_dynamic_dlops)

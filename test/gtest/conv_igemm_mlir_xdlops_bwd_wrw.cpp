@@ -67,8 +67,7 @@ auto GetTestCases()
     std::pair{wrw, flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     std::pair{wrw, flags_wrw + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     std::pair{wrw, flags_wrw + " --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1" + groupCount_32},
-    std::pair{wrw, flags_wrw + " --input 64 1024 14 14 --weights 1024 1024  1 1 --pads_strides_dilations 0 0 1 1 1 1"}
-        // clang-format on
+    std::pair{wrw, flags_wrw + " --input 64 1024 14 14 --weights 1024 1024  1 1 --pads_strides_dilations 0 0 1 1 1 1"} // clang-format on
     };
 }
 
@@ -85,6 +84,7 @@ bool IsTestSupportedForDevice()
 
 class GPU_Conv2dMLIRTestIGemmXDlopsBwdWrw_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 TEST_P(GPU_Conv2dMLIRTestIGemmXDlopsBwdWrw_FP32, FloatTest_conv_igemm_mlir_xdlops_bwd_wrw)

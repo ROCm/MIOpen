@@ -68,6 +68,7 @@ bool IsTestSupportedForDevice()
 
 class GPU_Conv2dTuningV6R1_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 TEST_P(GPU_Conv2dTuningV6R1_FP16, HalfTest_smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw)

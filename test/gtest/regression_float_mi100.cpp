@@ -58,6 +58,7 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 class GPU_Conv2d_regression_mi100_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 bool IsTestSupportedForDevice()

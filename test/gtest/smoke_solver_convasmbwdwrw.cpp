@@ -84,18 +84,22 @@ bool IsTestSupportedForDevice()
 
 class GPU_Conv2dSingleAsmBwdWrw_FP32 : public FloatTestCase<std::vector<RegrTestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_Conv2dTuningAsmBwdWrw_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_Conv2dTuningAsmBwdWrw_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_Conv2dTuningAsmBwdWrw_BFP16 : public Bf16TestCase<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 TEST_P(GPU_Conv2dTuningAsmBwdWrw_FP32, FloatTest_smoke_solver_convasmbwdwrw)
