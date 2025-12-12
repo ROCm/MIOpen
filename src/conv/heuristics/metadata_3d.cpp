@@ -260,9 +260,9 @@ Metadata3D::LoadOutLayoutEncodings(const std::string& arch)
 
 // Constructor - loads all data immediately with error handling
 MIOPEN_INTERNALS_EXPORT
-Metadata3D::Metadata3D(const std::string& arch)
-    : arch_name(arch),
-      is_valid(false), // Initialize to false, will be set to true if all loads succeed
+Metadata3D::Metadata3D(const std::string& device)
+    : model_prefix(device + "_3d"), // Automatically append "_3d" suffix to device name
+      is_valid(false),              // Initialize to false, will be set to true if all loads succeed
       features(),
       num_inputs(0),
       num_outputs(0),
@@ -276,37 +276,37 @@ Metadata3D::Metadata3D(const std::string& arch)
       fil_layout_encodings(),
       out_layout_encodings()
 {
-    // Load all components using std::optional pattern
-    auto features_opt    = LoadFeatures(arch);
-    auto num_inputs_opt  = LoadNumInputs(arch);
-    auto num_outputs_opt = LoadNumOutputs(arch);
-    auto num_solvers_opt = LoadNumSolvers(arch);
-    auto solver_map_opt  = LoadSolverMap(arch);
+    // Load all components using std::optional pattern (using full arch_name with "_3d")
+    auto features_opt    = LoadFeatures(model_prefix);
+    auto num_inputs_opt  = LoadNumInputs(model_prefix);
+    auto num_outputs_opt = LoadNumOutputs(model_prefix);
+    auto num_solvers_opt = LoadNumSolvers(model_prefix);
+    auto solver_map_opt  = LoadSolverMap(model_prefix);
 
     // Check if basic components loaded successfully
     if(!features_opt || !num_inputs_opt || !num_outputs_opt || !num_solvers_opt || !solver_map_opt)
     {
-        MIOPEN_LOG_I2("Metadata3D: Failed to load basic components for " << arch);
+        MIOPEN_LOG_I2("Metadata3D: Failed to load basic components for " << model_prefix);
         return;
     }
 
     // Now load mean/std with the known num_inputs
-    auto features_mean_opt = LoadFeaturesMean(arch, *num_inputs_opt);
-    auto features_std_opt  = LoadFeaturesStd(arch, *num_inputs_opt);
+    auto features_mean_opt = LoadFeaturesMean(model_prefix, *num_inputs_opt);
+    auto features_std_opt  = LoadFeaturesStd(model_prefix, *num_inputs_opt);
 
     // Load encoding maps
-    auto direction_encodings_opt  = LoadDirectionEncodings(arch);
-    auto precision_encodings_opt  = LoadPrecisionEncodings(arch);
-    auto in_layout_encodings_opt  = LoadInLayoutEncodings(arch);
-    auto fil_layout_encodings_opt = LoadFilLayoutEncodings(arch);
-    auto out_layout_encodings_opt = LoadOutLayoutEncodings(arch);
+    auto direction_encodings_opt  = LoadDirectionEncodings(model_prefix);
+    auto precision_encodings_opt  = LoadPrecisionEncodings(model_prefix);
+    auto in_layout_encodings_opt  = LoadInLayoutEncodings(model_prefix);
+    auto fil_layout_encodings_opt = LoadFilLayoutEncodings(model_prefix);
+    auto out_layout_encodings_opt = LoadOutLayoutEncodings(model_prefix);
 
     // Check if all components loaded successfully
     if(!features_mean_opt || !features_std_opt || !direction_encodings_opt ||
        !precision_encodings_opt || !in_layout_encodings_opt || !fil_layout_encodings_opt ||
        !out_layout_encodings_opt)
     {
-        MIOPEN_LOG_I2("Metadata3D: Failed to load encoding components for " << arch);
+        MIOPEN_LOG_I2("Metadata3D: Failed to load encoding components for " << model_prefix);
         return;
     }
 
@@ -330,7 +330,8 @@ Metadata3D::Metadata3D(const std::string& arch)
     if(miopen::IsLogging(LoggingLevel::Info2))
     {
         MIOPEN_LOG_I2("Metadata3D loaded successfully for arch: "
-                      << arch << ", num_inputs=" << num_inputs << ", num_solvers=" << num_solvers);
+                      << model_prefix << ", num_inputs=" << num_inputs
+                      << ", num_solvers=" << num_solvers);
     }
 }
 

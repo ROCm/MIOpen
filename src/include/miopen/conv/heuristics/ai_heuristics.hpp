@@ -145,7 +145,7 @@ namespace conv3d {
 class Metadata3D
 {
 private:
-    const std::string arch_name;
+    const std::string model_prefix;
     bool is_valid; // Error handling flag
 
     // Loaded data (const members like 2D pattern)
@@ -189,10 +189,10 @@ private:
 public:
     /**
      * @brief Constructor - loads all metadata immediately with error handling
-     * @param arch Architecture name (e.g., "gfx942_3d")
+     * @param device Device name (e.g., "gfx942", "gfx950") - "_3d" suffix appended internally
      * @note Does not throw - use IsValid() to check for errors
      */
-    MIOPEN_INTERNALS_EXPORT explicit Metadata3D(const std::string& arch);
+    MIOPEN_INTERNALS_EXPORT explicit Metadata3D(const std::string& device);
 
     /**
      * @brief Check if metadata was loaded successfully
@@ -201,10 +201,10 @@ public:
     bool IsValid() const { return is_valid; }
 
     /**
-     * @brief Get architecture name
-     * @return Architecture name used during construction
+     * @brief Get model_prefix for 3D models
+     * @return Model prefix string used during construction/loading
      */
-    const std::string& GetArchName() const { return arch_name; }
+    const std::string& GetModelPrefix() const { return model_prefix; }
 
     /**
      * @brief Get list of feature names used by 3D model
@@ -330,14 +330,14 @@ protected:
     /**
      * @brief Extract numerical features from 3D convolution problem
      * @param problem 3D convolution problem description
-     * @return Feature vector for TunaNet3D input (23 features)
+     * @return Feature vector for TunaNet3D input
      */
     virtual std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const = 0;
 };
 
 /**
  * @brief Factory function to create 3D AI heuristics model for given device
- * @param device GPU device name (e.g., "gfx942", "gfx90a")
+ * @param device GPU device name (e.g., "gfx942", "gfx950")
  * @return Device-specific 3D model instance, or nullptr if unsupported
  */
 MIOPEN_INTERNALS_EXPORT std::unique_ptr<Model3D> Get3DModel(const std::string& device);

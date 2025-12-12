@@ -1,0 +1,87 @@
+{
+    "generated_on": "04 Dec 2025, 09:07:51",
+    "gpu": {
+        "num_cu": 256,
+        "arch": "gfx950"
+    },
+    "version_info": {
+        "miopen_version": "4d4d42e748"
+    },
+    "sessions": [
+        6,
+        69,
+        71
+    ],
+    "note": "Data merged from sessions: [6, 69, 71]",
+    "num_inputs": 24,
+    "num_solvers": 9,
+    "num_outputs": 12,
+    "encodings": {
+        "in_layout": {
+            "NCDHW": 0,
+            "NDHWC": 1
+        },
+        "fil_layout": {
+            "NCDHW": 0,
+            "NDHWC": 1
+        },
+        "out_layout": {
+            "NCDHW": 0,
+            "NDHWC": 1
+        },
+        "precision": {
+            "BF16": 0,
+            "FP16": 1,
+            "FP32": 2
+        },
+        "direction": {
+            "B": 0,
+            "F": 1,
+            "W": 2
+        },
+        "solver": {
+            "ConvHipImplicitGemm3DGroupBwdXdlops": 0,
+            "ConvHipImplicitGemm3DGroupFwdXdlops": 1,
+            "ConvHipImplicitGemm3DGroupWrwXdlops": 2,
+            "GemmBwd1x1_stride1": 3,
+            "GemmBwdRest": 4,
+            "GemmFwd1x1_0_1": 5,
+            "GemmFwdRest": 6,
+            "GemmWrw1x1_stride1": 7,
+            "GemmWrwUniversal": 8
+        }
+    },
+    "conv_params_used_as_features": [
+        "in_channels",
+        "in_d",
+        "in_h",
+        "in_w",
+        "out_channels",
+        "out_d",
+        "out_h",
+        "out_w",
+        "fil_d",
+        "fil_h",
+        "fil_w",
+        "pad_d",
+        "pad_h",
+        "pad_w",
+        "conv_stride_d",
+        "conv_stride_h",
+        "conv_stride_w",
+        "batchsize",
+        "in_layout",
+        "fil_layout",
+        "out_layout",
+        "precision",
+        "direction",
+        "group_count"
+    ],
+    "redundant_columns": {
+        "spatial_dim": 3,
+        "dilation_d": 1,
+        "dilation_h": 1,
+        "dilation_w": 1,
+        "bias": 0
+    }
+}

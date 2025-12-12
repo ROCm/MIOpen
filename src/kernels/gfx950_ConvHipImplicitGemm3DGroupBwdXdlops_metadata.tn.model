@@ -1,15 +1,11 @@
 {
-    "generated_on": "07 Aug 2025, 13:32:50",
+    "generated_on": "24 Nov 2025, 08:11:28",
     "gpu": {
-        "device_name": "AMD Instinct MI300X",
-        "arch": "gfx942",
-        "num_cu": 304
+        "num_cu": 256,
+        "arch": "gfx950"
     },
     "version_info": {
-        "rocm_md_version": "AMDHSA_COv3",
-        "hip_version": "6.3.42134",
-        "miopen_version": "3.4.0.eee082fc68-dirty",
-        "ck_version": "1.1.0@29574f05f7188709493909447543b7954038f899"
+        "miopen_version": "4d4d42e748"
     },
     "solver_name": "ConvHipImplicitGemm3DGroupBwdXdlops",
     "output_params": [
@@ -144,15 +140,10 @@
             "dilation_h": "1",
             "dilation_w": "1",
             "bias": "0",
-            "direction": "B",
-            "group_count": "1"
+            "direction": "B"
         },
         "outputs": {
             "000_kernel_name": "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1",
-            "004_KPerBlock": "32",
-            "005_AK1": "8",
-            "008_MPerXDL": "32",
-            "009_NPerXDL": "32",
             "014_CShuffleMXdlPerWavePerShuffle": "1",
             "015_CShuffleNXdlPerWavePerShuffle": "1"
         }
