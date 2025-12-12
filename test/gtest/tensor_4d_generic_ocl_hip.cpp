@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "get_handle.hpp"
-#include "random.hpp"
-#include <verify.hpp>
-#include <miopen/miopen.h>
 #include <miopen/datatype.hpp>
-#include <miopen/kernel_build_params.hpp>
 #include <gtest/gtest.h>
 
-#include <tensor_util.hpp>
-
+#include "get_handle.hpp"
+#include "verify.hpp"
 #include "perf_helper.hpp"
-#include <miopen/float_equal.hpp>
 
 #define MAX_TENSOR_ELEM 17
 #define PERF_ENABLE 0
@@ -52,7 +46,7 @@ template <typename T>
 std::vector<TensorsConfig> TensorsConfigs()
 {
     std::vector<TensorsConfig> configs;
-    auto insertTestCase = [&configs](size_t& N, size_t& C, size_t& H, size_t& W) {
+    auto insertTestCase = [&configs](size_t N, size_t C, size_t H, size_t W) {
         configs.push_back(
             {{N, C, H, W}, {C * H * W, H * W, W, 1}, {N, C, H, W}, {C * H * W, H * W, W, 1}});
         configs.push_back(
@@ -89,41 +83,32 @@ std::vector<TensorsConfig> TensorsConfigs()
 
     if constexpr(PERF_ENABLE)
     {
+        // Determine a cache-aware cap on total tensor elements for HIP/AMD:
+        // 1) Query L2 size via HIP and use 2x L2 as working set
+        // 2) Fallback to per-architecture table if L2 is not reported
+        size_t maxTotalSize = 0;
 
-        const auto& handle = get_handle();
-        size_t maxTotalSize;
+        // 1) HIP L2 cache query
+        int dev = -1;
+        if(hipSuccess == hipGetDevice(&dev))
+        {
+            int L2_bytes = 0;
+            if(hipSuccess == hipDeviceGetAttribute(&L2_bytes, hipDeviceAttributeL2CacheSize, dev) &&
+               L2_bytes > 0)
+            {
+                // Use 2x L2 as a working-set heuristic
+                maxTotalSize = 2ul * static_cast<size_t>(L2_bytes);
+                // Convert bytes -> elements of type T
+                maxTotalSize /= sizeof(T);
+            }
+        }
+
+        // 2) Fallback table by architecture family
+        if(maxTotalSize == 0)
+            maxTotalSize = getCacheSizeLimit<T>(get_handle().GetDeviceName());
 
         // Generate all NCHW tensors that are limited by L3 cache size
         // or 2xL2 cache size when L3 is not available
-        if(miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-           miopen::StartsWith(handle.GetDeviceName(), "gfx908"))
-        {
-            maxTotalSize = 16; // twice the 8MB L2
-        }
-        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx803"))
-        {
-            maxTotalSize = 4; // twice the 2MB L2
-        }
-        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") ||
-                miopen::StartsWith(handle.GetDeviceName(), "gfx906"))
-        {
-            maxTotalSize = 8; // twice the 4MB L2
-        }
-        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx942"))
-        {
-            maxTotalSize = 256; // 256MB L3
-        }
-        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103"))
-        {
-            maxTotalSize = 128; // 128MB L3
-        }
-        else
-        {
-            maxTotalSize = 4; // twice the 2MB L2, default case.
-        }
-
-        maxTotalSize = maxTotalSize * 1024ull * 1024ull / sizeof(T);
-
         if constexpr(POW_2)
         {
             for(size_t N = 1; N <= maxTotalSize; N *= 2)
@@ -262,14 +247,6 @@ protected:
             }
         }
 
-        // if(std::accumulate(tensorsConfig.blens.begin(),
-        //                    tensorsConfig.blens.end(),
-        //                    4,
-        //                    std::multiplies<std::size_t>()) == 1)
-        // {
-        //     bitmap = 4;
-        // }
-
         num_wg_orig = num_wg;
         max_num_wg  = 4096;
         num_wg      = num_wg > max_num_wg ? max_num_wg : num_wg;
@@ -289,7 +266,6 @@ protected:
 
     void runCPU()
     {
-
         std::vector<T> A = tensA.data;
         std::vector<T> B = tensB.data;
         std::vector<T> C = tensC.data;
@@ -342,48 +318,43 @@ protected:
         std::string program_name       = "MIOpenTensorKernels.cl";
         std::string network_config_ocl = network_config + "-ocl";
 
-        handle.AddKernel("Op4dTensorGeneric",
-                         network_config_ocl,
-                         program_name,
-                         "Op4dTensorGeneric",
-                         vld,
-                         vgd,
-                         params)(tensA_dev.get(),
-                                 static_cast<int>(tensorsConfig.acstrides[0]),
-                                 static_cast<int>(tensorsConfig.acstrides[1]),
-                                 static_cast<int>(tensorsConfig.acstrides[2]),
-                                 tensB_dev.get(),
-                                 static_cast<int>(tensorsConfig.blens[1]),
-                                 static_cast<int>(tensorsConfig.blens[2]),
-                                 static_cast<int>(tensorsConfig.blens[3]),
-                                 static_cast<int>(tensorsConfig.bstrides[0]),
-                                 static_cast<int>(tensorsConfig.bstrides[1]),
-                                 static_cast<int>(tensorsConfig.bstrides[2]),
-                                 tensC_dev.get(),
-                                 static_cast<int>(tensorsConfig.aclens[1]),
-                                 static_cast<int>(tensorsConfig.aclens[2]),
-                                 static_cast<int>(tensorsConfig.aclens[3]),
-                                 static_cast<int>(tensorsConfig.acstrides[0]),
-                                 static_cast<int>(tensorsConfig.acstrides[1]),
-                                 static_cast<int>(tensorsConfig.acstrides[2]),
-                                 alpha0,
-                                 alpha1,
-                                 beta,
-                                 bitmap,
-                                 work_per_wg,
-                                 static_cast<int64_t>(0),
-                                 static_cast<int64_t>(0),
-                                 static_cast<int64_t>(0),
-                                 static_cast<int>(num_wg_orig));
+        handle.AddKernel(
+            kernel_name, network_config_ocl, program_name, kernel_name, vld, vgd, params)(
+            tensA_dev.get(),
+            static_cast<int>(tensorsConfig.acstrides[0]),
+            static_cast<int>(tensorsConfig.acstrides[1]),
+            static_cast<int>(tensorsConfig.acstrides[2]),
+            tensB_dev.get(),
+            static_cast<int>(tensorsConfig.blens[1]),
+            static_cast<int>(tensorsConfig.blens[2]),
+            static_cast<int>(tensorsConfig.blens[3]),
+            static_cast<int>(tensorsConfig.bstrides[0]),
+            static_cast<int>(tensorsConfig.bstrides[1]),
+            static_cast<int>(tensorsConfig.bstrides[2]),
+            tensC_dev.get(),
+            static_cast<int>(tensorsConfig.aclens[1]),
+            static_cast<int>(tensorsConfig.aclens[2]),
+            static_cast<int>(tensorsConfig.aclens[3]),
+            static_cast<int>(tensorsConfig.acstrides[0]),
+            static_cast<int>(tensorsConfig.acstrides[1]),
+            static_cast<int>(tensorsConfig.acstrides[2]),
+            alpha0,
+            alpha1,
+            beta,
+            bitmap,
+            work_per_wg,
+            static_cast<long>(0),
+            static_cast<long>(0),
+            static_cast<long>(0),
+            num_wg_orig);
 
         tensC_ocl.data = handle.Read<T>(tensC_dev, tensC_ocl.data.size());
 
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(handle,
-                        "Op4dTensorGeneric",
+                        kernel_name,
                         network_config_ocl,
-                        false,
                         tensA_dev.get(),
                         static_cast<int>(tensorsConfig.acstrides[0]),
                         static_cast<int>(tensorsConfig.acstrides[1]),
@@ -407,10 +378,10 @@ protected:
                         beta,
                         bitmap,
                         work_per_wg,
-                        static_cast<int64_t>(0),
-                        static_cast<int64_t>(0),
-                        static_cast<int64_t>(0),
-                        static_cast<int>(num_wg_orig));
+                        static_cast<long>(0),
+                        static_cast<long>(0),
+                        static_cast<long>(0),
+                        num_wg_orig);
         }
     }
 
@@ -429,48 +400,43 @@ protected:
         std::string program_name       = "MIOpenTensorKernelsHip.cpp";
         std::string network_config_hip = network_config + "-hip";
 
-        handle.AddKernel("Op4dTensorGeneric",
-                         network_config_hip,
-                         program_name,
-                         "Op4dTensorGeneric",
-                         vld,
-                         vgd,
-                         params)(tensA_dev.get(),
-                                 static_cast<int>(tensorsConfig.acstrides[0]),
-                                 static_cast<int>(tensorsConfig.acstrides[1]),
-                                 static_cast<int>(tensorsConfig.acstrides[2]),
-                                 tensB_dev.get(),
-                                 static_cast<int>(tensorsConfig.blens[1]),
-                                 static_cast<int>(tensorsConfig.blens[2]),
-                                 static_cast<int>(tensorsConfig.blens[3]),
-                                 static_cast<int>(tensorsConfig.bstrides[0]),
-                                 static_cast<int>(tensorsConfig.bstrides[1]),
-                                 static_cast<int>(tensorsConfig.bstrides[2]),
-                                 tensC_dev.get(),
-                                 static_cast<int>(tensorsConfig.aclens[1]),
-                                 static_cast<int>(tensorsConfig.aclens[2]),
-                                 static_cast<int>(tensorsConfig.aclens[3]),
-                                 static_cast<int>(tensorsConfig.acstrides[0]),
-                                 static_cast<int>(tensorsConfig.acstrides[1]),
-                                 static_cast<int>(tensorsConfig.acstrides[2]),
-                                 alpha0,
-                                 alpha1,
-                                 beta,
-                                 bitmap,
-                                 work_per_wg,
-                                 static_cast<int64_t>(0),
-                                 static_cast<int64_t>(0),
-                                 static_cast<int64_t>(0),
-                                 static_cast<int>(num_wg_orig));
+        handle.AddKernel(
+            kernel_name, network_config_hip, program_name, kernel_name, vld, vgd, params)(
+            tensA_dev.get(),
+            static_cast<int>(tensorsConfig.acstrides[0]),
+            static_cast<int>(tensorsConfig.acstrides[1]),
+            static_cast<int>(tensorsConfig.acstrides[2]),
+            tensB_dev.get(),
+            static_cast<int>(tensorsConfig.blens[1]),
+            static_cast<int>(tensorsConfig.blens[2]),
+            static_cast<int>(tensorsConfig.blens[3]),
+            static_cast<int>(tensorsConfig.bstrides[0]),
+            static_cast<int>(tensorsConfig.bstrides[1]),
+            static_cast<int>(tensorsConfig.bstrides[2]),
+            tensC_dev.get(),
+            static_cast<int>(tensorsConfig.aclens[1]),
+            static_cast<int>(tensorsConfig.aclens[2]),
+            static_cast<int>(tensorsConfig.aclens[3]),
+            static_cast<int>(tensorsConfig.acstrides[0]),
+            static_cast<int>(tensorsConfig.acstrides[1]),
+            static_cast<int>(tensorsConfig.acstrides[2]),
+            alpha0,
+            alpha1,
+            beta,
+            bitmap,
+            work_per_wg,
+            static_cast<long>(0),
+            static_cast<long>(0),
+            static_cast<long>(0),
+            num_wg_orig);
 
         tensC_hip.data = handle.Read<T>(tensC_dev, tensC_hip.data.size());
 
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(handle,
-                        "Op4dTensorGeneric",
+                        kernel_name,
                         network_config_hip,
-                        false,
                         tensA_dev.get(),
                         static_cast<int>(tensorsConfig.acstrides[0]),
                         static_cast<int>(tensorsConfig.acstrides[1]),
@@ -494,10 +460,10 @@ protected:
                         beta,
                         bitmap,
                         work_per_wg,
-                        static_cast<int64_t>(0),
-                        static_cast<int64_t>(0),
-                        static_cast<int64_t>(0),
-                        static_cast<int>(num_wg_orig));
+                        static_cast<long>(0),
+                        static_cast<long>(0),
+                        static_cast<long>(0),
+                        num_wg_orig);
         }
     }
 
@@ -510,7 +476,7 @@ protected:
     void verifyCPU()
     {
         auto error = miopen::rms_range(tensC_hip, tensC_cpu);
-        EXPECT_TRUE(error == 0) << "GPU outputs do not match each other. Error: " << error;
+        EXPECT_TRUE(error == 0) << "GPU outputs do not match CPU results. Error: " << error;
     }
 
     void TearDown() override
@@ -537,10 +503,11 @@ protected:
             stats += "_alpha0_" + std::to_string(alpha0) + "_alpha1_" + std::to_string(alpha1) +
                      "_beta_" + std::to_string(beta) + "_" + miopen::GetDataType(data_type);
 
-            ph.writeStatsToCSV("tensor_4d.csv", stats);
+            ph.writeStatsToCSV("tensor_4d_generic.csv", stats);
         }
     }
 
+    const std::string kernel_name{"Op4dTensorGeneric"};
     std::string network_config{};
     std::string params{};
     std::vector<size_t> vld, vgd;
