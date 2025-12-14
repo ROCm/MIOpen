@@ -802,4 +802,17 @@ pipeline {
             }
         }
     }
+
+    post {
+        success {
+            githubNotify context: 'Math CI Summary',
+                         status: 'SUCCESS',
+                         description: 'All checks have passed'
+        }
+        failure {
+            githubNotify context: 'Math CI Summary',
+                         status: 'FAILURE',
+                         description: 'Some checks have failed'
+        }
+    }
 }
