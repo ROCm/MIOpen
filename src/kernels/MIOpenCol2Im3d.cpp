@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include "float_types.h"
+#include "miopen_cstdint.hpp"
 
 #if MIOPEN_USE_FP16
 #define ACCUMULATOR_NEEDS_CONVERSION 1
@@ -93,9 +94,9 @@ extern "C" __global__ void Col2Im3dU(FLOAT* col,
     unsigned int end_w   = min(col_w, im_w / stride_w + 1);
 
 #if MIOPEN_USE_64BIT_INDEX
-    ulong ch_offset = (ulong)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+    uint64_t ch_offset = (uint64_t)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
 #else
-    unsigned int ch_offset = im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+    uint32_t ch_offset = im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
 #endif
 
     col += ch_offset;
@@ -117,13 +118,12 @@ extern "C" __global__ void Col2Im3dU(FLOAT* col,
                     unsigned int x = (im_w - cx * stride_w) / dilation_w;
 
 #if MIOPEN_USE_64BIT_INDEX
-                    unsigned long col_off =
-                        ((((((unsigned long)z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h +
-                         cy) *
+                    uint64_t col_off =
+                        ((((((uint64_t)z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) *
                             col_w +
                         cx;
 #else
-                    unsigned int col_off =
+                    uint32_t col_off =
                         (((((z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) * col_w + cx;
 #endif
 

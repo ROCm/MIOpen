@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#include "miopen_cstdint.hpp"
+
 #ifndef MIOPEN_USE_FP32
 #define MIOPEN_USE_FP32 0
 #endif
@@ -106,14 +108,14 @@ typedef float data_t;
  */
 
 #ifdef USE_LARGE_BUFFER_INDEX
-using index_t = long;
+using index_t = int64_t;
 #else
-using index_t = int;
+using index_t = int32_t;
 #endif
 
 extern "C" __global__ void Im2d2Col_v2(const int data_size_off,
                                        data_t* im,
-                                       const unsigned long im_offset,
+                                       const uint64_t im_offset,
                                        const int h,
                                        const int w,
                                        const int wei_h,

@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include "float_types.h"
+#include "miopen_cstdint.hpp"
 
 #if MIOPEN_USE_FP16
 #define ACCUMULATOR_NEEDS_CONVERSION 1
@@ -38,9 +39,9 @@
 #endif
 
 #if MIOPEN_USE_64BIT_INDEX
-using index_t = unsigned long;
+using index_t = uint64_t;
 #else
-using index_t = unsigned int;
+using index_t = uint32_t;
 #endif
 
 extern "C" __global__ void Col2Im2dU(FLOAT* col,
