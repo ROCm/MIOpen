@@ -962,8 +962,7 @@ void BuildHip(const std::string& name,
         {
             auto rocm_include_arg = "-I" + rocm_path + "/include";
             opts.push_back(rocm_include_arg);
-            std::cout << "HIPRTC compile ROCm include path argument: " << rocm_include_arg
-                      << std::endl;
+            MIOPEN_LOG_T("HIPRTC compile ROCm include path argument: " << rocm_include_arg);
         }
 
         HiprtcProgram prog(name, text);
