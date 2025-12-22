@@ -1,16 +1,17 @@
 {
-    "generated_on": "07 Aug 2025, 13:32:44",
+    "generated_on": "07 Dec 2025, 10:45:16",
     "gpu": {
-        "device_name": "AMD Instinct MI300X",
-        "arch": "gfx942",
-        "num_cu": 304
+        "num_cu": 304,
+        "arch": "gfx942"
     },
     "version_info": {
-        "rocm_md_version": "AMDHSA_COv3",
-        "hip_version": "6.3.42134",
-        "miopen_version": "3.4.0.eee082fc68-dirty",
-        "ck_version": "1.1.0@29574f05f7188709493909447543b7954038f899"
+        "miopen_version": "8e7018af9b"
     },
+    "sessions": [
+        1,
+        72
+    ],
+    "note": "Data merged from sessions: [1, 72]",
     "solver_name": "ConvHipImplicitGemm3DGroupFwdXdlops",
     "output_params": [
         "000_kernel_name",
@@ -150,18 +151,19 @@
             "005_ConvForwardSpecialization": {
                 "Default": 0,
                 "Filter1x1Pad0": 1,
-                "Filter1x1Stride1Pad0": 2
+                "Filter1x1Stride1Pad0": 2,
+                "Filter3x3": 3
             },
             "016_BlkGemmPipelineScheduler": {
-                "BlkGemmPipelineScheduler: Interwave": 0,
-                "BlkGemmPipelineScheduler: Intrawave": 1
+                "Interwave": 0,
+                "Intrawave": 1
             },
             "017_BlkGemmPipelineVersion": {
-                "BlkGemmPipelineVersion: v1": 0,
-                "BlkGemmPipelineVersion: v2": 1,
-                "BlkGemmPipelineVersion: v3": 2,
-                "BlkGemmPipelineVersion: v4": 3,
-                "BlkGemmPipelineVersion: v5": 4
+                "v1": 0,
+                "v2": 1,
+                "v3": 2,
+                "v4": 3,
+                "v5": 4
             }
         }
     },
@@ -194,18 +196,19 @@
             "005_ConvForwardSpecialization": {
                 "0": "Default",
                 "1": "Filter1x1Pad0",
-                "2": "Filter1x1Stride1Pad0"
+                "2": "Filter1x1Stride1Pad0",
+                "3": "Filter3x3"
             },
             "016_BlkGemmPipelineScheduler": {
-                "0": "BlkGemmPipelineScheduler: Interwave",
-                "1": "BlkGemmPipelineScheduler: Intrawave"
+                "0": "Interwave",
+                "1": "Intrawave"
             },
             "017_BlkGemmPipelineVersion": {
-                "0": "BlkGemmPipelineVersion: v1",
-                "1": "BlkGemmPipelineVersion: v2",
-                "2": "BlkGemmPipelineVersion: v3",
-                "3": "BlkGemmPipelineVersion: v4",
-                "4": "BlkGemmPipelineVersion: v5"
+                "0": "v1",
+                "1": "v2",
+                "2": "v3",
+                "3": "v4",
+                "4": "v5"
             }
         }
     },
@@ -216,12 +219,9 @@
             "dilation_h": "1",
             "dilation_w": "1",
             "bias": "0",
-            "direction": "F",
-            "group_count": "1"
+            "direction": "F"
         },
-        "outputs": {
-            "015_NumGroupsToMerge": "1"
-        }
+        "outputs": {}
     },
     "missing_value_token": -1.0
 }
