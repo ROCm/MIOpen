@@ -591,8 +591,8 @@ typedef enum
  */
 typedef enum
 {
-    MIOPEN_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
-    MIOPEN_PROPAGATE_NAN     = 1, /*!< propagate the Nan number by the Reduction operation */
+    MIOPEN_NOT_PROPAGATE_NAN = 0, /*!< does not propagate NaN number */
+    MIOPEN_PROPAGATE_NAN     = 1, /*!< propagate the NaN number by the Reduction operation */
 } miopenNanPropagation_t;
 
 /*! @ingroup TensorReduce
@@ -2646,8 +2646,8 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
  * @param weight         Data tensor weight (input)
  * @param biasDesc       Tensor descriptor for data input tensor bias (input)
  * @param bias           Data tensor bias (input)
- * @param epsilon        Value to stablize inverse variance calculation (input)
- * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param epsilon        Value to stabilize inverse variance calculation (input)
+ * @param normalized_dim Normalized dimensions in the input array (input)
  * @param yDesc          Tensor descriptor for output data tensor y (input)
  * @param y              Data tensor y (output)
  * @param meanDesc       Tensor descriptor for output data tensor mean (input)
@@ -2683,7 +2683,7 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
  * @param weightDesc               Tensor descriptor for data input tensor weight (input)
  * @param meanDesc                 Tensor descriptor for data input tensor mean (input)
  * @param rstdDesc                 Tensor descriptor for data input tensor rstd (input)
- * @param normalized_dim           Nomalized dimensions in the input array (input)
+ * @param normalized_dim           Normalized dimensions in the input array (input)
  * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
  * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
  * @param dbDesc                   Tensor descriptor for output data tensor db (input)
@@ -2720,7 +2720,7 @@ miopenGetLayerNormBackwardWorkspaceSize(miopenHandle_t handle,
  * @param mean                     Data tensor mean (input)
  * @param rstdDesc                 Tensor descriptor for input data tensor rstd (input)
  * @param rstd                     Data tensor rstd (input)
- * @param normalized_dim           Nomalized dimensions in the input array (input)
+ * @param normalized_dim           Normalized dimensions in the input array (input)
  * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
  * @param dx                       Data tensor dx (output)
  * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
@@ -3000,7 +3000,7 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
  * If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and
  * variance will be calculated from input data and this calculated mean and variance will be used
  * to update input values.
- * If variance is zero and epsilon is also zero, this function outputs NAN values.  Input espilon
+ * If variance is zero and epsilon is also zero, this function outputs NaN values.  Input epsilon
  * value should always be non zero positive value.
  *
  * @param handle                    MIOpen handle (input)
@@ -3045,7 +3045,7 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
  * If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and
  * variance will be calculated from input data and this calculated mean and variance will be used
  * to update input values.
- * If variance is zero and epsilon is also zero, this function outputs NAN values.  Input espilon
+ * If variance is zero and epsilon is also zero, this function outputs NaN values.  Input epsilon
  * value should always be non zero positive value.
  *
  * @param handle                    MIOpen handle (input)
@@ -3095,7 +3095,7 @@ miopenBatchNormalizationForwardInference_V2(miopenHandle_t handle,
  * If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and
  * variance will be calculated from input data and this calculated mean and variance will be used
  * to update input values.
- * If variance is zero and epsilon is also zero, this function outputs NAN values.  Input espilon
+ * If variance is zero and epsilon is also zero, this function outputs NaN values.  Input epsilon
  * value should always be non zero positive value.
  *
  * @param handle                    MIOpen handle (input)
@@ -3169,7 +3169,7 @@ miopenBatchNormForwardInferenceActivation(miopenHandle_t handle,
  * @param resultBnBiasDiff          Tensor for dbias (output)
  * @param epsilon                   Value to stabilize inverse variance calculation (input)
  * @param savedMean                 Saved mini-batch mean for backwards pass (input)
- * @param savedInvVariance          Saved mini-bathc inverse variance for backwards pass (input)
+ * @param savedInvVariance          Saved mini-batch inverse variance for backwards pass (input)
  * @return                          miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -3971,7 +3971,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t arg
  * @param fusePlanDesc     fused plan descriptor (input)
  * @param inputDesc        Descriptor of the input tensor (input)
  * @param input            Source data tensor  (input)
- * @param outputDesc       Decriptor of the output tensor (input)
+ * @param outputDesc       Descriptor of the output tensor (input)
  * @param output           Destination data tensor  (output)
  * @param args             An argument object of the fused kernel (input)
  * @return           miopenStatus_t
@@ -3992,7 +3992,7 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
  * @param fusePlanDesc     fused plan descriptor (input)
  * @param inputDesc        Descriptor of the input tensor (input)
  * @param input            Source data tensor  (input)
- * @param outputDesc       Decriptor of the output tensor (input)
+ * @param outputDesc       Descriptor of the output tensor (input)
  * @param output           Destination data tensor  (output)
  * @param args             An argument object of the fused kernel (input)
  * @param workspace        A pointer to an intermediate workspace (input)
@@ -4087,9 +4087,9 @@ typedef enum
 {
     miopenRNNdefault = 0,        /*!< Use dedicated gate-operation kernel for LSTM and fundamental
                                     algorithm for vanilla RNN & GRU */
-    miopenRNNfundamental = 1,    /*!< Deprecated, low performance. Function by basic tesnsor
+    miopenRNNfundamental = 1,    /*!< Deprecated, low performance. Function by basic tensor
                                     operations, supported for vanilla RNN, LSTM, GRU */
-    miopenRNNroundedDynamic = 2, /*!< The algorithm rounds some RNN parametrs upwards
+    miopenRNNroundedDynamic = 2, /*!< The algorithm rounds some RNN parameters upwards
                                     to utilize the most optimal GEMM kernel in the computation.*/
 } miopenRNNAlgo_t;
 
@@ -4421,7 +4421,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
                                                           miopenTensorDescriptor_t wDesc,
                                                           miopenDataType_t dtype);
 
-/*! @brief Obtain a the size in bytes of the RNN input tensor
+/*! @brief Obtain the size in bytes of the RNN input tensor
  *
  * This function determines the size in bytes of the allocation needed for the input data
  * tensor for an RNN layer. The number of bytes is derived from the array of
@@ -4444,7 +4444,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNInputTensorSize(miopenHandle_t handle,
                                                          miopenTensorDescriptor_t* xDesc,
                                                          size_t* numBytes);
 
-/*! @brief Obtain a the size in bytes of the RNN hidden tensor
+/*! @brief Obtain the size in bytes of the RNN hidden tensor
  *
  * This function determines the size in bytes of the allocation needed for the
  * hidden tensor over all layers
@@ -4959,7 +4959,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDe
  * @param rnnDesc               RNN layer descriptor type (input)
  * @param fwdMode          Specifies in which mode the buffers will be used.
  * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
- * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ * miopenSeqTensorDescriptor_t should be initialized by `miopenSetRNNDataSeqTensorDescriptor`
  * function.(input)
  * @param x                     Pointer to input tensor (input)
  *
@@ -4996,7 +4996,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDe
  * @param weightSpaceSize       Number of allocated bytes in memory for the weights tensor
  * @param workSpace             Pointer to memory allocated for forward (input / output)
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
- * @param reserveSpace          Pointer to memory allocated for hidden states used durning training
+ * @param reserveSpace          Pointer to memory allocated for hidden states used during training
  * (input / output)
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward  (input)
  * @return                      miopenStatus_t
@@ -5029,7 +5029,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForward(miopenHandle_t handle,
  * @param rnnDesc               RNN layer descriptor type (input)
 
  * @param yDesc                 An output tensor descriptor for sequenced RNN data. This
- * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ * miopenSeqTensorDescriptor_t should be initialized by `miopenSetRNNDataSeqTensorDescriptor`
  function.(input)
  * @param y                     Pointer to input tensor (input)
  * @param dy                    Pointer to the hidden layer input tensor (input)
@@ -5058,7 +5058,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForward(miopenHandle_t handle,
  * the cell gradient will not ouput. (output)
 
  * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
- * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ * miopenSeqTensorDescriptor_t should be initialized by `miopenSetRNNDataSeqTensorDescriptor`
  function.(input)
  * @param dx                    Pointer to the cell layer output tensor (output)
  *
@@ -5100,7 +5100,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardSeqData(miopenHandle_t handle,
  * @param rnnDesc               RNN layer descriptor type (input)
 
  * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
- * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ * miopenSeqTensorDescriptor_t should be initialized by `miopenSetRNNDataSeqTensorDescriptor`
  function.(input)
  * @param x                     Pointer to input tensor (input)
  *
@@ -5113,7 +5113,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardSeqData(miopenHandle_t handle,
  * then the initial hidden state will be zero initialized. (input)
  *
  * @param yDesc                 An output tensor descriptor for sequenced RNN data. This
- * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ * miopenSeqTensorDescriptor_t should be initialized by `miopenSetRNNDataSeqTensorDescriptor`
  function.(input)
  * @param y                     Pointer to the output tensor (input)
  *
@@ -5790,7 +5790,7 @@ miopenDestroyReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorD
  * @param reduceTensorOp           Enumerant specifying the operation used by ReduceTensor (input)
  * @param reduceTensorCompType     Enumerant specifying the data type used with ReduceTensor
  * operation (input)
- * @param reduceTensorNanOpt       Enumerant specifying the Nan number propagation mode (input)
+ * @param reduceTensorNanOpt       Enumerant specifying the NaN number propagation mode (input)
  * @param reduceTensorIndices      Enumerant specifying the indices modes used by ReduceTensor
  * (input)
  * @param reduceTensorIndicesType  Enumerant specifying the data type of the indices (input)
@@ -5811,7 +5811,7 @@ miopenSetReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc,
  * ReduceTensor (output)
  * @param reduceTensorCompType     Pointer to enumerant specifying the data type used with
  * ReduceTensor operation (output)
- * @param reduceTensorNanOpt       Pointer to enumerant specifying the Nan number propagation mode
+ * @param reduceTensorNanOpt       Pointer to enumerant specifying the NaN number propagation mode
  * (output)
  * @param reduceTensorIndices      Pointer to enumerant specifying the indices modes used by
  * ReduceTensor (output)
@@ -6296,7 +6296,7 @@ MIOPEN_EXPORT miopenStatus_t miopenLoadSolution(miopenSolution_t* solution,
 /*! @brief Saves a solution object as binary data.
  *
  * @param solution   Solution to save
- * @param data       Pointer to a buffer to save soltuion to
+ * @param data       Pointer to a buffer to save solution to
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
@@ -6309,7 +6309,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char*
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
 
-/*! @brief Reads the amount of workspace required to exectute the solution.
+/*! @brief Reads the amount of workspace required to execute the solution.
  *
  * @param solution      Solution to get required workspace size
  * @param workspaceSize Pointer to a location where to write the workspace size
@@ -6320,7 +6320,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t sol
 
 /*! @brief Reads the time spent to execute the solution the last it was run.
  *
- * @param solution Solution to get exection time
+ * @param solution Solution to get execution time
  * @param time     Pointer to a location where to write the execution time
  * @return         miopenStatus_t
  */
@@ -6428,9 +6428,9 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem
  */
 typedef enum
 {
-    MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
+    MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN = 0, /*!< does not propagate NaN number */
     MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN =
-        1, /*!< propagate the Nan number by the Reduction operation */
+        1, /*!< propagate the NaN number by the Reduction operation */
 } miopenReduceCalculationNanPropagation_t;
 
 // ReduceCalculation APIs
@@ -6470,7 +6470,7 @@ miopenGetReduceCalculationWorkspaceSize(miopenHandle_t handle,
 /*! @brief Execute a reducecalculation forward layer
  *
  * @param [in]   handle                   MIOpen handle
- * @param [in]   nanPropagation           Nan number propagation mode
+ * @param [in]   nanPropagation           NaN number propagation mode
  * @param [in]   workspace                Address of the allocated workspace data
  * @param [in]   workspaceSizeInBytes     Size in bytes of the allocated workspace data
  * @param [in]   xDesc                    Tensor descriptor for data input tensor x
@@ -6565,8 +6565,8 @@ miopenReduceExtremeForward(miopenHandle_t handle,
  * @param weight         Data tensor weight (input)
  * @param biasDesc       Tensor descriptor for data input tensor bias (input)
  * @param bias           Data tensor bias (input)
- * @param num_groups     nNmber of groups to separate the channels into (input)
- * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param num_groups     Number of groups to separate the channels into (input)
+ * @param epsilon        Value to stabilize inverse variance calculation (input)
  * @param yDesc          Tensor descriptor for output data tensor y (input)
  * @param y              Data tensor y (output)
  * @param meanDesc       Tensor descriptor for output data tensor mean (input)
@@ -6614,8 +6614,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
  * @param weight         Data tensor weight (input)
  * @param biasDesc       Tensor descriptor for data input tensor bias (input)
  * @param bias           Data tensor bias (input)
- * @param epsilon        Value to stablize inverse variance calculation (input)
- * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param epsilon        Value to stabilize inverse variance calculation (input)
+ * @param normalized_dim Normalized dimensions in the input array (input)
  * @param yDesc          Tensor descriptor for output data tensor y (input)
  * @param y              Data tensor y (output)
  * @param meanDesc       Tensor descriptor for output data tensor mean (input)
@@ -7089,7 +7089,7 @@ typedef enum
     MIOPEN_TYPE_RNG_DISTRIBUTION         /*!< miopenRngDistribution_t */
 } miopenBackendAttributeType_t;
 
-/*! @brief Intended poinwise math operation for a pointwise operation descriptor
+/*! @brief Intended pointwise math operation for a pointwise operation descriptor
  *
  * An enumerated type to indicate the intended pointwise math operation in the backend pointwise
  * operation descriptor
@@ -7800,7 +7800,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
  * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
  * @param gradScale           Input grad scale tensor (input, optional)
  * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
- * @param foundInf            Tensor indicating presence of inf or nan in gradients. If true, skips
+ * @param foundInf            Tensor indicating presence of inf or NaN in gradients. If true, skips
  *                            operation and step update. (input, optional)
  * @return                    miopenStatus_t
  */
@@ -8085,7 +8085,7 @@ MIOPEN_EXPORT miopenStatus_t miopenTransformersAdamW(miopenHandle_t handle,
  * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
  * @param gradScale           Input grad scale tensor (input, optional)
  * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
- * @param foundInf            Tensor indicating presence of inf or nan in gradients. If true, skips
+ * @param foundInf            Tensor indicating presence of inf or NaN in gradients. If true, skips
  *                            operation and step update. (input, optional)
  * @return                    miopenStatus_t
  */
@@ -8137,8 +8137,8 @@ miopenTransformersAdamWWithOutput(miopenHandle_t handle,
 /*! @brief Helper function to query the minimum workspace size required by the getitem call
  *
  * @param [in]   handle                  MIOpen Handle
- * @param [in]   indexCount              Number of input tensor indexs
- * @param [in]   indexDescs              Tensor descriptor of input tensor indexs
+ * @param [in]   indexCount              Number of input tensor indexes
+ * @param [in]   indexDescs              Tensor descriptor of input tensor indexes
  * @param [out]  sizeInBytes             Pointer to data to return the minimum workspace size
  * @return                        miopenStatus_t
  */
