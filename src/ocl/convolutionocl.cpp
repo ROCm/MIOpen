@@ -913,6 +913,9 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     // On regular path (find-db hit) this was checked during Find().
     Problem::ValidateGroupCount(xDesc, weightsDesc, *this);
 
+    const auto& conv    = problem.GetConv();
+    bool immediate_mode = conv.findMode.IsFast(ctx);
+
     auto interim = std::vector<miopenConvSolution_t>{};
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
 
@@ -953,7 +956,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                 if(!sol.IsApplicable(ctx, problem))
                     continue;
                 const auto ws = sol.GetWorkspaceSize(ctx, problem);
-                if(!conv::IsEnoughWorkspace("GetSolutionsFallback AI", solver_id, ws, invokeParams))
+                if(!conv::IsEnoughWorkspace(
+                       "GetSolutionsFallback AI", solver_id, ws, invokeParams, !immediate_mode))
                     continue;
                 interim.emplace_back(
                     miopenConvSolution_t{ai_time(idx), ws, solver_id.Value(), algo});
@@ -990,7 +994,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
             if(s.IsEmpty() || !s.IsDynamic() || !s.IsApplicable(ctx, problem))
                 continue;
             const auto ws = s.GetWorkspaceSize(ctx, problem);
-            if(!conv::IsEnoughWorkspace("GetSolutionsFallback WTI", solver_id, ws, invokeParams))
+            if(!conv::IsEnoughWorkspace(
+                   "GetSolutionsFallback WTI", solver_id, ws, invokeParams, !immediate_mode))
                 continue;
 
             const auto wti = s.GetWti(ctx, problem);
