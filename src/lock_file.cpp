@@ -45,16 +45,15 @@ fs::path LockFilePath(const fs::path& filename_)
 {
     try
     {
-        auto directory = fs::temp_directory_path() / "miopen-lockfiles";
-        if(!filename_.parent_path().empty())
-            directory = filename_.parent_path() / "miopen-lockfiles";
+        const auto directory = fs::temp_directory_path() / "miopen-lockfiles";
 
         if(!fs::exists(directory))
         {
             fs::create_directories(directory);
             fs::permissions(directory, FS_ENUM_PERMS_ALL);
         }
-        const auto file = directory / (filename_.filename() + ".lock");
+        const auto hash = md5(filename_.parent_path().string());
+        const auto file = directory / (hash + "_" + filename_.filename() + ".lock");
 
         return file;
     }
@@ -75,8 +74,7 @@ LockFile::LockFile(const fs::path& path_, PassKey) : path(path_)
                 MIOPEN_THROW("Error creating file <" + path + "> for locking.");
             fs::permissions(path, FS_ENUM_PERMS_ALL);
         }
-        flock   = path.string().c_str();
-        fs_lock = FSLockFile(path.string());
+        flock = path.string().c_str();
     }
     catch(const fs::filesystem_error& ex)
     {

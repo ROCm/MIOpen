@@ -351,21 +351,29 @@ void RamDb::Prefetch()
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
 void RamDb::UpdateCacheEntryUnsafe(const DbRecord& record)
 {
-    const auto& key = record.GetKey();
-    const auto it   = cache.find(key);
-    auto ss         = std::ostringstream{};
-    record.WriteIdsAndValues(ss);
+    const auto is_valid = ValidateUnsafe();
 
-    if(it != cache.end())
+    if constexpr(!DisableUserDbFileIO)
+        UpdateDbModificationTime(GetFileName());
+
+    if(is_valid)
     {
-        auto& item   = it->second;
-        item.content = ss.str();
+        const auto& key = record.GetKey();
+        const auto it   = cache.find(key);
+        auto ss         = std::ostringstream{};
+        record.WriteIdsAndValues(ss);
+
+        if(it != cache.end())
+        {
+            auto& item   = it->second;
+            item.content = ss.str();
+        }
+        else
+        {
+            cache.emplace(key, CacheItem{-1, ss.str()});
+        }
+        file_read_time = ramdb_clock::now();
     }
-    else
-    {
-        cache.emplace(key, CacheItem{-1, ss.str()});
-    }
-    file_read_time = ramdb_clock::now();
 }
 #endif
 
