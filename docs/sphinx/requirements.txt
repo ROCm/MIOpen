@@ -25,7 +25,7 @@ breathe==4.35.0
     # via rocm-docs-core
 certifi==2024.7.4
     # via requests
-cffi==1.16.0
+cffi==2.0.0
     # via
     #   cryptography
     #   pynacl
@@ -197,7 +197,7 @@ pyjson5==1.6.7
     # via doxysphinx
 pyjwt[crypto]==2.8.0
     # via pygithub
-pynacl==1.5.0
+pynacl==1.6.2
     # via pygithub
 pyparsing==3.2.0
     # via
