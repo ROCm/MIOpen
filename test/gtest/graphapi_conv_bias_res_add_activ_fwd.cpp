@@ -215,6 +215,9 @@ public:
         {
             GTEST_SKIP() << "CBA graph Fusion not supported in this device";
         }
+#if !MIOPEN_USE_COMPOSABLEKERNEL
+        GTEST_SKIP() << "CBA graph Fusion requires CK";
+#endif
 
         prng::reset_seed();
     }

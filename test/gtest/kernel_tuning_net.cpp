@@ -199,7 +199,7 @@ class KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestC
 protected:
     void TestParameterPredictionModel(std::string solver_nm)
     {
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING && MIOPEN_USE_COMPOSABLEKERNEL
         auto test_case = GetParam();
 
         auto&& handle = get_handle();
