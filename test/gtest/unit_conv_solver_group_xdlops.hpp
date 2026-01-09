@@ -20,6 +20,34 @@ struct GroupXdlopsNumericData
     unsigned int group_count;
 
     bool deterministic = false;
+
+    friend std::ostream& operator<<(std::ostream& os, const GroupXdlopsNumericData& numeric_data)
+    {
+        os << "GroupXdlopsNumericData part: [";
+        LogVector(os, "x", numeric_data.x);
+        LogVector(os, "w", numeric_data.w);
+        LogVector(os, "pad", numeric_data.pad);
+        LogVector(os, "stride", numeric_data.stride);
+        LogVector(os, "dilation", numeric_data.dilation);
+        os << "group_count: " << numeric_data.group_count;
+        os << "deterministic: " << numeric_data.deterministic;
+        os << "]";
+        return os;
+    }
+
+private:
+    template <typename T>
+    static void LogVector(std::ostream& os, const std::string& vec_name, const std::vector<T>& vec)
+    {
+        os << vec_name << ": [";
+        for(size_t i = 0; i < vec.size(); ++i)
+        {
+            os << vec[i];
+            if(i < vec.size() - 1)
+                os << ",";
+        }
+        os << "] ";
+    }
 };
 
 template <miopenDataType_t datatype>
