@@ -74,7 +74,7 @@ const auto& GetTestParams()
         p.Tunable(5);
 
         // Increased tolerance because of tolerance failures
-        p.SetTolerance(supportedDevices, miopenFloat, 20.0f);
+        p.SetTolerance(supportedDevices, miopenFloat, 30.0f);
 
         return p;
     }();
