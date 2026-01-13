@@ -46,7 +46,7 @@ __device__ void ropefwdcontiguous(const TI* __restrict__ x,
     FLOAT_ACCUM input = CVT_FLOAT2ACCUM(x[gid]);
     uint64_t freqs_id = gid % rotary_numel;
     FLOAT_ACCUM input_rotate_half =
-        (gid % 2 == 0) ? CVT_FLOAT2ACCUM(-x[(gid + 1)]) : CVT_FLOAT2ACCUM(x[gid - 1]);
+        (gid % 2 == 0) ? -CVT_FLOAT2ACCUM(x[(gid + 1)]) : CVT_FLOAT2ACCUM(x[gid - 1]);
 
     FLOAT_ACCUM cos_val = CVT_FLOAT2ACCUM(cos[freqs_id]);
     FLOAT_ACCUM sin_val = CVT_FLOAT2ACCUM(sin[freqs_id]);
@@ -72,7 +72,7 @@ __device__ void ropebwdcontiguous(const TI* __restrict__ dy,
 
     FLOAT_ACCUM output_grad = CVT_FLOAT2ACCUM(dy[gid]);
     FLOAT_ACCUM output_grad_rotate_half =
-        (gid % 2 == 0) ? CVT_FLOAT2ACCUM(dy[(gid + 1)]) : CVT_FLOAT2ACCUM(-dy[(gid - 1)]);
+        (gid % 2 == 0) ? CVT_FLOAT2ACCUM(dy[(gid + 1)]) : -CVT_FLOAT2ACCUM(dy[(gid - 1)]);
 
     FLOAT_ACCUM cos_val = CVT_FLOAT2ACCUM(cos[freqs_id]);
     FLOAT_ACCUM sin_val = (freqs_id % 2 == 0) ? CVT_FLOAT2ACCUM(sin[freqs_id + 1])
