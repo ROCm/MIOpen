@@ -71,9 +71,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     }();
 
     const auto algo    = AlgorithmName{"LayerNormForward"};
-    const auto solvers = solver::SolverContainer<solver::layernorm::Layernorm2DCKForward,
-                                                 solver::layernorm::Layernorm4DCKForward,
-                                                 solver::layernorm::LayernormForward>{};
+    const auto solvers = solver::SolverContainer<solver::layernorm::LayernormForward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

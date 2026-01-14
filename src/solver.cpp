@@ -635,10 +635,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     ++id; // removed batchnorm::BnCKFwdInference
     ++id; // removed batchnorm::BnCKBwdBackward
     ++id; // removed batchnorm::BnCKFwdTraining
-    Register(
-        registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());
-    Register(
-        registry, ++id, Primitive::Normalization, layernorm::Layernorm4DCKForward{}.SolverDbId());
+    ++id; // removed layernorm::Layernorm2DCKForward
+    ++id; // removed layernorm::Layernorm4DCKForward
     Register(registry, ++id, Primitive::Normalization, layernorm::LayernormForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::SumForward{}.SolverDbId());
     ++id;
