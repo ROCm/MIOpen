@@ -4928,6 +4928,15 @@ private:
     size_t GetCKMaxWorkspaceSize(const miopen::conv::ProblemDescription& problem) const;
 };
 
+// Test helper functions for metadata validation
+// These functions return all CK kernel TypeStrings without problem-based filtering
+// Declared here but implemented in the respective solver .cpp files
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+MIOPEN_INTERNALS_EXPORT std::vector<std::string> GetAllWrwKernelTypeStrings();
+MIOPEN_INTERNALS_EXPORT std::vector<std::string> GetAllFwdKernelTypeStrings();
+MIOPEN_INTERNALS_EXPORT std::vector<std::string> GetAllBwdKernelTypeStrings();
+#endif
+
 } // namespace conv
 } // namespace solver
 } // namespace miopen

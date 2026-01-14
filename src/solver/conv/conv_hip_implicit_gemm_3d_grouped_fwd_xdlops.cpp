@@ -366,6 +366,28 @@ FillValidKernelsByAlphaBeta(const ::miopen::conv::ProblemDescription& problem)
 }
 } // namespace
 
+// Test helper: Get all FWD kernel TypeStrings without filtering
+// Used for metadata validation tests
+std::vector<std::string> GetAllFwdKernelTypeStrings()
+{
+    std::vector<std::string> all_kernels;
+
+    auto bilinear_ptrs = DeviceOpGFwdBilinearPtrs<float>::GetInstances();
+    auto scale_ptrs    = DeviceOpGFwdScalePtrs<float>::GetInstances();
+    auto default_ptrs  = DeviceOpGFwdDefaultPtrs<float>::GetInstances();
+
+    all_kernels.reserve(bilinear_ptrs.size() + scale_ptrs.size() + default_ptrs.size());
+
+    for(const auto& ptr : bilinear_ptrs)
+        all_kernels.push_back(ptr->GetTypeString());
+    for(const auto& ptr : scale_ptrs)
+        all_kernels.push_back(ptr->GetTypeString());
+    for(const auto& ptr : default_ptrs)
+        all_kernels.push_back(ptr->GetTypeString());
+
+    return all_kernels;
+}
+
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(
     const ::miopen::conv::ProblemDescription& problem)

@@ -190,15 +190,15 @@
                 "Filter1x1Stride1Pad0": 1
             },
             "017_BlkGemmPipelineScheduler": {
-                "Interwave": 0,
-                "Intrawave": 1
+                "BlkGemmPipelineScheduler: Interwave": 0,
+                "BlkGemmPipelineScheduler: Intrawave": 1
             },
             "018_BlkGemmPipelineVersion": {
-                "v1": 0,
-                "v2": 1,
-                "v3": 2,
-                "v4": 3,
-                "v5": 4
+                "BlkGemmPipelineVersion: v1": 0,
+                "BlkGemmPipelineVersion: v2": 1,
+                "BlkGemmPipelineVersion: v3": 2,
+                "BlkGemmPipelineVersion: v4": 3,
+                "BlkGemmPipelineVersion: v5": 4
             },
             "020_GemmSpecialization_layout": {
                 "DeviceBatchedGemmXdlUniversal<Default, CRR>": 0,
@@ -238,15 +238,15 @@
                 "1": "Filter1x1Stride1Pad0"
             },
             "017_BlkGemmPipelineScheduler": {
-                "0": "Interwave",
-                "1": "Intrawave"
+                "0": "BlkGemmPipelineScheduler: Interwave",
+                "1": "BlkGemmPipelineScheduler: Intrawave"
             },
             "018_BlkGemmPipelineVersion": {
-                "0": "v1",
-                "1": "v2",
-                "2": "v3",
-                "3": "v4",
-                "4": "v5"
+                "0": "BlkGemmPipelineVersion: v1",
+                "1": "BlkGemmPipelineVersion: v2",
+                "2": "BlkGemmPipelineVersion: v3",
+                "3": "BlkGemmPipelineVersion: v4",
+                "4": "BlkGemmPipelineVersion: v5"
             },
             "020_GemmSpecialization_layout": {
                 "0": "DeviceBatchedGemmXdlUniversal<Default, CRR>",

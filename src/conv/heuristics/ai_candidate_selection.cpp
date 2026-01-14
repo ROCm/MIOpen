@@ -312,10 +312,36 @@ std::vector<std::pair<int, float>> CandidateSelectionModel::SelectBestCandidateI
         scored_candidates.emplace_back(static_cast<int>(i), score);
     }
 
-    // Sort by score in descending order (best to worst)
-    std::sort(scored_candidates.begin(), scored_candidates.end(), [](const auto& a, const auto& b) {
-        return a.second > b.second;
-    });
+    // Check if all scores are NaN (all candidates unsupported)
+    bool all_nan = std::all_of(scored_candidates.begin(),
+                               scored_candidates.end(),
+                               [](const auto& candidate) { return std::isnan(candidate.second); });
+
+    if(all_nan)
+    {
+        MIOPEN_LOG_W("All candidate kernels are unsupported by the AI model - cannot rank");
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "AI model does not support any of the provided kernel candidates");
+    }
+
+    // NaN-aware comparator: ensures NaN scores (unsupported kernels) sort last
+    auto score_comparator_nan_aware = [](const std::pair<int, float>& a,
+                                         const std::pair<int, float>& b) {
+        bool a_is_nan = std::isnan(a.second);
+        bool b_is_nan = std::isnan(b.second);
+
+        if(a_is_nan && b_is_nan)
+            return false; // Both NaN, consider equal
+        if(a_is_nan)
+            return false; // a is NaN, b comes first
+        if(b_is_nan)
+            return true; // b is NaN, a comes first
+
+        return a.second > b.second; // Normal descending order by score
+    };
+
+    // Sort by score in descending order (best to worst), with NaNs last
+    std::sort(scored_candidates.begin(), scored_candidates.end(), score_comparator_nan_aware);
 
     return scored_candidates;
 }
@@ -392,7 +418,29 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
         if(candidate.empty())
             MIOPEN_THROW("Candidate vector is empty, cannot extract kernel_name.");
         const std::string& kernel_name = candidate[0];
-        const auto& kernel_str_mapping = metadata.GetKernelStrMapping(kernel_name);
+
+        // Try to get kernel string mapping - if not found, this is an unsupported kernel
+        std::map<std::string, std::string> kernel_str_mapping;
+        try
+        {
+            kernel_str_mapping = metadata.GetKernelStrMapping(kernel_name);
+        }
+        catch(const std::exception&)
+        {
+            // Kernel not in metadata - likely a new CK kernel not yet supported by the model
+            // Log warning and create sentinel encoding to preserve index alignment
+            MIOPEN_LOG_W("Kernel not in metadata (new CK kernel?): " << kernel_name);
+            MIOPEN_LOG_W("AI model cannot predict for this kernel - it will be ranked last");
+            MIOPEN_LOG_W("Consider updating the AI model to support this kernel type");
+
+            // Create sentinel encoding (all NaN) to ensure this kernel ranks last
+            // NaN propagates through dot product, resulting in NaN score which sorts last
+            std::vector<float> sentinel_encoding(output_params.size() -
+                                                     metadata.GetConstantOutputIndices().size(),
+                                                 std::numeric_limits<float>::quiet_NaN());
+            encoded_candidates.push_back(sentinel_encoding);
+            continue; // Skip to next candidate
+        }
 
         // Build a map from param_name to value for this candidate
         std::map<std::string, std::string> param_value_map;
