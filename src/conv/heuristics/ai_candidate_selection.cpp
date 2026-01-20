@@ -429,9 +429,10 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
         {
             // Kernel not in metadata - likely a new CK kernel not yet supported by the model
             // Log warning and create sentinel encoding to preserve index alignment
-            MIOPEN_LOG_W("Kernel not in metadata (new CK kernel?): " << kernel_name);
-            MIOPEN_LOG_W("AI model cannot predict for this kernel - it will be ranked last");
-            MIOPEN_LOG_W("Consider updating the AI model to support this kernel type");
+            MIOPEN_LOG_I2("Kernel not in metadata (new CK kernel?): "
+                          << kernel_name
+                          << ". AI model cannot predict for this kernel - it will be ranked last. "
+                             "Consider updating the AI model to support this kernel type");
 
             // Create sentinel encoding (all NaN) to ensure this kernel ranks last
             // NaN propagates through dot product, resulting in NaN score which sorts last
@@ -564,9 +565,10 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
 
                             if(!found_ws)
                             {
-                                MIOPEN_LOG_WE("No encoding found in metadata for value '"
-                                              << param_value
-                                              << "' of output parameter: " << param_name);
+                                MIOPEN_LOG_WE(
+                                    "Kernel: "
+                                    << kernel_name << " - No encoding found in metadata for value '"
+                                    << param_value << "' of output parameter: " << param_name);
                                 MIOPEN_LOG_WE("setting it to the NaN value");
                                 value = missing_value_encoding;
                             }

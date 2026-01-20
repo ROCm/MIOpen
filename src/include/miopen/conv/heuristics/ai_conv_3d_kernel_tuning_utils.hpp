@@ -47,6 +47,8 @@ MIOPEN_INTERNALS_EXPORT std::map<std::string, float>
 GetFeatures3D(const miopen::conv::ProblemDescription&, int max_cu, const std::string& arch);
 
 MIOPEN_INTERNALS_EXPORT std::vector<std::string> GetKernelAsTokens(const std::string& kernel);
+MIOPEN_INTERNALS_EXPORT std::vector<std::string>
+ProcessExplicitXdlParams(const std::vector<std::string>& params);
 MIOPEN_INTERNALS_EXPORT void FillHeuristicKernels(const std::vector<std::string>& valid_kernels,
                                                   std::vector<int>& indexes,
                                                   std::vector<std::vector<std::string>>& kernels);
