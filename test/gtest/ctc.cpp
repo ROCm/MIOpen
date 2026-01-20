@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,30 +24,22 @@
  *
  *******************************************************************************/
 
-#include "driver.hpp"
-#include "get_handle.hpp"
-#include "tensor_holder.hpp"
-#include "test.hpp"
-#include "verify.hpp"
-#include "workspace.hpp"
-#include "rnn_util.hpp"
-#include "random.hpp"
-#include <array>
-#include <cmath>
-#include <ctime>
-#include <iomanip>
-#include <iostream>
-#include <iterator>
-#include <limits>
-#include <memory>
 #include <miopen/ctc.hpp>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <utility>
-#include <cfloat>
-#include <algorithm>
+
+#include "gtest_common.hpp"
+#include "test_parameter_name_generator.hpp"
+#include "workspace.hpp"
+
+namespace {
 
 #define NEGATIVE_CUTOFF_VAL (-1e20)
+
+using TestCase = std::tuple<NamedParameter<int>,
+                            NamedParameter<int>,
+                            NamedParameter<int>,
+                            NamedParameter<int>,
+                            NamedParameter<bool>,
+                            NamedParameter<int>>;
 
 template <typename T>
 T logaddexp_cpu(T* x, T* y)
@@ -383,12 +375,9 @@ void VerifyCTCLoss(std::vector<int>& probsDesc,
                    const int blank_lb      = 0,
                    bool is_softmax_applied = true)
 {
-    if(probsDesc[0] != gradientsDesc[0] || probsDesc[1] != gradientsDesc[1] ||
-       probsDesc[2] != gradientsDesc[2])
-    {
-        std::cout << "probs tensor's dimension does not gradients tensor's dimension" << std::endl;
-        return;
-    }
+    ASSERT_FALSE(probsDesc[0] != gradientsDesc[0] || probsDesc[1] != gradientsDesc[1] ||
+                 probsDesc[2] != gradientsDesc[2])
+        << "probs tensor's dimension does not gradients tensor's dimension";
 
     int class_sz      = probsDesc[2];
     int batch_size    = probsDesc[1];
@@ -400,22 +389,16 @@ void VerifyCTCLoss(std::vector<int>& probsDesc,
 
     for(int i = 0; i < batch_size; i++)
     {
-        if(inputLengths[i] > max_time_step)
-        {
-            std::cout << "Wrong input time step at batch :" << i << std::endl;
-            return;
-        }
+        ASSERT_LE(inputLengths[i], max_time_step) << "Wrong input time step at batch: " << i;
+
         max_label_len = std::max(max_label_len, labelLengths[i]);
         total_label_len += labelLengths[i];
         labels_offset[i] = i == 0 ? 0 : (labels_offset[i - 1] + labelLengths[i - 1]);
 
         for(int j = 0; j < labelLengths[i]; j++)
         {
-            if(labels[labels_offset[i] + j] >= class_sz)
-            {
-                std::cout << "Wrong label id at batch :" << i << std::endl;
-                return;
-            }
+            ASSERT_LT(labels[labels_offset[i] + j], class_sz) << "Wrong label id at batch: " << i;
+
             if(j > 0)
             {
                 if(labels[labels_offset[i] + j] == labels[labels_offset[i] + j - 1])
@@ -423,23 +406,14 @@ void VerifyCTCLoss(std::vector<int>& probsDesc,
             }
         }
 
-        if(labelLengths[i] + repeat[i] > inputLengths[i])
-        {
-            std::cout << "Error: label length exceeds input time step at batch :" << i << std::endl;
-            return;
-        }
+        ASSERT_LE(labelLengths[i] + repeat[i], inputLengths[i])
+            << "Error: label length exceeds input time step at batch: " << i;
     }
 
-    if(probs.size() != (max_time_step * batch_size * class_sz))
-    {
-        std::cout << "Wrong probability tensor size" << std::endl;
-        return;
-    }
-    if(probs.size() != gradients_cpu.size())
-    {
-        std::cout << "Wrong gradient tensor size" << std::endl;
-        return;
-    }
+    ASSERT_EQ(probs.size(), max_time_step * batch_size * class_sz)
+        << "Wrong probability tensor size";
+
+    ASSERT_EQ(probs.size(), gradients_cpu.size()) << "Wrong gradient tensor size";
 
     // input length
     std::copy(inputLengths, inputLengths + batch_size, workspace_cpu.begin());
@@ -481,13 +455,9 @@ void GetCTCLossWorkspaceSizeCPU(std::vector<int> probsDesc,
                                 const int* inputLengths,
                                 size_t* workSpaceSizeCPU)
 {
-    if(probsDesc[0] != gradientsDesc[0] || probsDesc[1] != gradientsDesc[1] ||
-       probsDesc[2] != gradientsDesc[2])
-    {
-        *workSpaceSizeCPU = 0;
-        std::cout << "Label batch size does not match input batch size" << std::endl;
-        return;
-    }
+    ASSERT_FALSE(probsDesc[0] != gradientsDesc[0] || probsDesc[1] != gradientsDesc[1] ||
+                 probsDesc[2] != gradientsDesc[2])
+        << "Label batch size does not match input batch size";
 
     int class_sz        = probsDesc[2];
     int batch_size      = probsDesc[1];
@@ -501,22 +471,16 @@ void GetCTCLossWorkspaceSizeCPU(std::vector<int> probsDesc,
 
     for(int i = 0; i < batch_size; i++)
     {
-        if(inputLengths[i] > max_time_step)
-        {
-            std::cout << "Wrong input time step" << std::endl;
-            return;
-        }
+        ASSERT_LE(inputLengths[i], max_time_step) << "Wrong input time step";
+
         max_label_len = std::max(max_label_len, labelLengths[i]);
         total_label_len += labelLengths[i];
         labels_offset[i] = i == 0 ? 0 : (labels_offset[i - 1] + labelLengths[i - 1]);
 
         for(int j = 0; j < labelLengths[i]; j++)
         {
-            if(labels[labels_offset[i] + j] >= class_sz)
-            {
-                std::cout << "Wrong label id at batc" << std::endl;
-                return;
-            }
+            ASSERT_LT(labels[labels_offset[i] + j], class_sz) << "Wrong label id at batc";
+
             if(j > 0)
             {
                 if(labels[labels_offset[i] + j] == labels[labels_offset[i] + j - 1])
@@ -524,11 +488,8 @@ void GetCTCLossWorkspaceSizeCPU(std::vector<int> probsDesc,
             }
         }
 
-        if(labelLengths[i] + repeat[i] > inputLengths[i])
-        {
-            std::cout << "Error: label length exceeds input time step" << std::endl;
-            return;
-        }
+        ASSERT_LE(labelLengths[i] + repeat[i], inputLengths[i])
+            << "Error: label length exceeds input time step";
     }
 
     // input length
@@ -696,8 +657,26 @@ struct verify_ctcloss
     }
 };
 
+inline auto GenCases()
+{
+    return testing::Combine(MakeNamedParameterValues<int>("batchSize", 1, 16, 32, 64, 128),
+                            MakeNamedParameterValues<int>("inputLen", 100),
+                            MakeNamedParameterValues<int>("labelLen", 40),
+                            MakeNamedParameterValues<int>("numClass", 28, 5000),
+                            MakeNamedParameterValues<bool>("is_softmax_applied", true, false),
+                            MakeNamedParameterValues<int>("blank_id", 0, 1000));
+}
+
+inline auto GetCases()
+{
+    static const auto cases = GenCases();
+    return cases;
+}
+
+} // namespace
+
 template <class T>
-struct ctc_driver : test_driver
+struct ctc_test : public testing::TestWithParam<TestCase>
 {
     int inputLen{};
     int labelLen{};
@@ -710,21 +689,19 @@ struct ctc_driver : test_driver
     tensor<T> probs;
     tensor<T> grads;
     tensor<T> losses;
+    const double tolerance{80};
 
-    ctc_driver()
+    void SetUp() override
     {
-        add(batchSize, "batch-size", generate_data({1, 16, 32, 64, 128}));
-        add(inputLen, "input-len", generate_data({100}));
-        add(labelLen, "label-len", generate_data({40}));
-        add(numClass, "num-class", generate_data({28, 5000}));
-        add(is_softmax_applied, "apply-softmax-layer", generate_data({true, false}));
-        add(blank_id, "blank-label-id", generate_data({0, 1000}));
+        prng::reset_seed();
+        std::tie(batchSize, inputLen, labelLen, numClass, is_softmax_applied, blank_id) =
+            GetParam();
     }
 
-    void run()
+    void Run()
     {
         /// TODO fp16 support, see https://github.com/ROCm/rocm-libraries/issues/2866
-        if(type != miopenFloat)
+        if(miopen_type<T>{} != miopenFloat)
             return;
 
         /// \todo Resolve the issue and remove workaround.
@@ -792,9 +769,75 @@ struct ctc_driver : test_driver
                 labels[i] = blank_lb - 1 >= 0 ? (blank_lb - 1) : blank_lb + 1;
         }
 
-        verify(verify_ctcloss<T>{
+        Verify(verify_ctcloss<T>{
             ctcLossDesc, probs, labels, labelLengths, inputLengths, losses, grads});
+    }
+
+private:
+    void Verify(auto&& v)
+    {
+        const auto cpu = v.cpu();
+        const auto gpu = v.gpu();
+
+        Compare(v, cpu, gpu);
+    }
+
+    template <typename... CpuRanges, typename... GpuRanges>
+    void Compare(auto&& v, const std::tuple<CpuRanges...>& cpu, const std::tuple<GpuRanges...>& gpu)
+    {
+        static_assert(sizeof...(CpuRanges) == sizeof...(GpuRanges), "CPU and GPU mismatch");
+
+        miopen::sequence([&](auto... is) {
+            miopen::each_args(
+                [&](auto i) {
+                    const auto& c = std::get<i>(cpu);
+                    const auto& g = std::get<i>(gpu);
+
+                    ASSERT_EQ(miopen::range_distance(c), miopen::range_distance(g));
+
+                    using value_type = miopen::range_value<decltype(g)>;
+
+                    const double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
+                    const double error     = miopen::rms_range(c, g);
+
+                    EXPECT_LE(error, threshold);
+
+                    if(error > threshold)
+                    {
+                        v.fail(i);
+                    }
+                },
+                is...);
+        })(std::integral_constant<std::size_t, sizeof...(CpuRanges)>{});
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<ctc_driver>(argc, argv); }
+struct TestNameGenerator
+{
+    std::string operator()(const auto& info)
+    {
+        const auto& [batchSize, inputLen, labelLen, numClass, is_softmax_applied, blank_id] =
+            info.param;
+        std::stringstream ss;
+        std::string str;
+
+        ss << "batchSize_" << batchSize() << "_inputLen_" << inputLen() << "_labelLen_"
+           << labelLen() << "_numClass_" << numClass() << "_is_softmax_applied_" << std::boolalpha
+           << is_softmax_applied() << "_blank_id_" << blank_id() << "_test_id_" << info.index;
+
+        str = ss.str();
+
+        // Name format only supports letters, numbers and underscores.
+        std::transform(str.begin(), str.end(), str.begin(), [](char c) {
+            return (c == '.') ? 'p' : (std::isalnum(c) ? c : '_');
+        });
+
+        return str;
+    }
+};
+
+using GPU_CTC_FP32 = ctc_test<float>;
+
+TEST_P(GPU_CTC_FP32, TestFloat) { this->Run(); }
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_CTC_FP32, GetCases(), TestNameGenerator{});
