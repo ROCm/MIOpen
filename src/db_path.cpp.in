@@ -28,6 +28,7 @@
 #include <miopen/env.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/expanduser.hpp>
+#include <miopen/filesystem_checker.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/filesystem.hpp>
 
@@ -101,8 +102,10 @@ fs::path PrepareUserDbPath()
     /// the deletion of user databases.
     const auto udb_path = ExpandUser("${MIOPEN_USER_DB_PATH}");
 #if !MIOPEN_BUILD_DEV
-    if(IsNetworkedFilesystem(udb_path))
-        return fs::temp_directory_path();
+    if(GetFilesystemChecker().IsNetworkedFilesystem(udb_path))
+    {
+        return fs::temp_directory_path() / ".config" / "miopen";
+    }
 #endif
     return udb_path;
 }
@@ -112,10 +115,33 @@ std::string GetUserDbSuffix() { return "${MIOPEN_USER_DB_SUFFIX}"; }
 
 std::string GetSystemFindDbSuffix() { return "${MIOPEN_SYSTEM_FIND_DB_SUFFIX}"; }
 
-const fs::path& GetUserDbPath()
+namespace {
+// Use static local variable to avoid non-const globals while allowing reset for testing
+const fs::path*& UserDbPathPtrRef()
 {
-    static const auto instance = PrepareUserDbPath();
-    return instance;
+    static const fs::path* ptr = nullptr;
+    return ptr;
 }
+
+const fs::path& GetUserDbPathInternal()
+{
+    auto& ptr = UserDbPathPtrRef();
+    if(ptr == nullptr)
+        ptr = new fs::path(PrepareUserDbPath());
+    return *ptr;
+}
+} // namespace
+
+const fs::path& GetUserDbPath() { return GetUserDbPathInternal(); }
+
+#ifdef MIOPEN_BUILD_TESTING
+namespace testing {
+void ResetUserDbPath()
+{
+    delete UserDbPathPtrRef();
+    UserDbPathPtrRef() = nullptr;
+}
+} // namespace testing
+#endif
 
 } // namespace miopen

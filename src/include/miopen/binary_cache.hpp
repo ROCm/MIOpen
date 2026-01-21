@@ -34,7 +34,7 @@
 
 namespace miopen {
 
-bool IsCacheDisabled();
+MIOPEN_INTERNALS_EXPORT bool IsCacheDisabled();
 
 MIOPEN_INTERNALS_EXPORT fs::path
 GetCacheFile(const std::string& device, const fs::path& name, const std::string& args);
@@ -62,6 +62,14 @@ void SaveBinary(const std::vector<char>& hsaco,
                 std::size_t num_cu,
                 const fs::path& name,
                 const std::string& args);
+#endif
+
+#ifdef MIOPEN_BUILD_TESTING
+namespace testing {
+/// Reset cached paths for testing purposes
+/// This allows tests to reinitialize paths with different mocks/env vars
+MIOPEN_INTERNALS_EXPORT void ResetCachedPaths();
+} // namespace testing
 #endif
 
 } // namespace miopen

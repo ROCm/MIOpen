@@ -114,6 +114,7 @@ set( MIOpen_Source
     env_debug.cpp
     execution_context.cpp
     expanduser.cpp
+    filesystem_checker.cpp
     fin/fin_interface.cpp
     find_controls.cpp
     find_db.cpp
