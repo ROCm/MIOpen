@@ -74,14 +74,15 @@ LockFile::LockFile(const fs::path& path_, PassKey) : path(path_)
                 MIOPEN_THROW("Error creating file <" + path + "> for locking.");
             fs::permissions(path, FS_ENUM_PERMS_ALL);
         }
-        flock = path.string().c_str();
+
+        flock = decltype(flock)(path.string());
     }
     catch(const fs::filesystem_error& ex)
     {
         LogFsError(ex, MIOPEN_GET_FN_NAME);
         throw;
     }
-    catch(const boost::interprocess::interprocess_exception& ex)
+    catch(const std::exception& ex)
     {
         LogFlockError(ex, "lock initialization", MIOPEN_GET_FN_NAME);
         throw;
