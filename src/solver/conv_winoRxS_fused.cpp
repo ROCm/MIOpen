@@ -159,13 +159,14 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 
     const std::string name = conv_ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
+    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11") ||
+         StartsWith(name, "gfx12")))
         return false;
 
     if(conv_problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
          StartsWith(name, "gfx942") || StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") ||
-         StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
+         StartsWith(name, "gfx103") || StartsWith(name, "gfx11") || StartsWith(name, "gfx12")))
         return false;
 
     // clang-format off
@@ -211,6 +212,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const auto name     = conv_ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
+    const auto is_gfx11 = StartsWith(name, "gfx11");
+    const auto is_gfx12 = StartsWith(name, "gfx12");
     const auto is_v21   = IsWinogradV21Preferred<2, 3>(name, conv_problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
@@ -228,7 +231,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
-    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_3_1";
+    const std::string kernel_version = is_gfx12 ? "_v40_6_0" : (is_v21 ? "_v21_1_3" : "_v30_3_1");
     kernel.kernel_file               = "Conv_Winograd" + kernel_version;
     kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
     const auto kernel_postfix =
@@ -242,9 +245,17 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     {
         kernel.kernel_name += "_gfx10";
     }
-    else // if (is_gfx11)
+    else if(is_gfx11)
     {
         kernel.kernel_name += "_gfx11";
+    }
+    else if(is_gfx12)
+    {
+        kernel.kernel_name += "_gfx12";
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
     }
 
     kernel.kernel_name += kernel_postfix;
