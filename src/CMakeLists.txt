@@ -489,6 +489,19 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp16_dot2_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp16_dot2_f2x3_stride1.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp16_dot2_f2x3_stride2.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp16_dot2_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp16_dot2_f3x2_stride1.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp16_dot2_f3x2_stride2.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v40_6_0_gfx12_fp32_f3x2_stride2.inc
+        kernels/Conv_Winograd_v40_6_0_metadata.inc
         kernels/MIOpenReduceCalculation.hpp
         kernels/MIOpenReduceExtreme.hpp
         kernels/bfloat16_dev.hpp
@@ -655,6 +668,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_fp32_f3x2_dilation2.s
         kernels/Conv_Winograd_v30_3_1_fp32_f3x2_stride1.s
         kernels/Conv_Winograd_v30_3_1_fp32_f3x2_stride2.s
+        kernels/Conv_Winograd_v40_6_0_fp16_dot2_f2x3_dilation2.s
+        kernels/Conv_Winograd_v40_6_0_fp16_dot2_f2x3_stride1.s
+        kernels/Conv_Winograd_v40_6_0_fp16_dot2_f2x3_stride2.s
+        kernels/Conv_Winograd_v40_6_0_fp16_dot2_f3x2_dilation2.s
+        kernels/Conv_Winograd_v40_6_0_fp16_dot2_f3x2_stride1.s
+        kernels/Conv_Winograd_v40_6_0_fp16_dot2_f3x2_stride2.s
+        kernels/Conv_Winograd_v40_6_0_fp32_f2x3_dilation2.s
+        kernels/Conv_Winograd_v40_6_0_fp32_f2x3_stride1.s
+        kernels/Conv_Winograd_v40_6_0_fp32_f2x3_stride2.s
+        kernels/Conv_Winograd_v40_6_0_fp32_f3x2_dilation2.s
+        kernels/Conv_Winograd_v40_6_0_fp32_f3x2_stride1.s
+        kernels/Conv_Winograd_v40_6_0_fp32_f3x2_stride2.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenBatchNormActivInferHIP.cpp

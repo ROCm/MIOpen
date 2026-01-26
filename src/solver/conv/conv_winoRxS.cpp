@@ -676,12 +676,13 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         return false;
 
     const auto name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
+    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11") ||
+         StartsWith(name, "gfx12")))
         return false;
     if(problem.IsFp16() &&
        !(name == "gfx906" || name == "gfx908" || name == "gfx90a" || name == "gfx942" ||
          StartsWith(name, "gfx95") || name == "gfx1011" || name == "gfx1012" ||
-         StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
+         StartsWith(name, "gfx103") || StartsWith(name, "gfx11") || StartsWith(name, "gfx12")))
         return false;
 
     if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
@@ -845,6 +846,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     const auto name     = ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
+    const auto is_gfx11 = StartsWith(name, "gfx11");
+    const auto is_gfx12 = StartsWith(name, "gfx12");
     const auto is_v21   = IsWinogradV21Preferred<Winodata, Winofilter>(name, problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
 
@@ -865,7 +868,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
-    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_3_1";
+    const std::string kernel_version = is_gfx12 ? "_v40_6_0" : (is_v21 ? "_v21_1_3" : "_v30_3_1");
     std::string kernel_name          = "miopenSp3AsmConv" + kernel_version;
     std::string kernel_file          = "Conv_Winograd" + kernel_version;
     std::string kernel_postfix;
@@ -878,9 +881,17 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         kernel_name += "_gfx10";
     }
-    else // if(is_gfx11)
+    else if(is_gfx11)
     {
         kernel_name += "_gfx11";
+    }
+    else if(is_gfx12)
+    {
+        kernel_name += "_gfx12";
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
     }
 
     if(problem.IsFp32())
