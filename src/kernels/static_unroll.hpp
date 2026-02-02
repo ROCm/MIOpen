@@ -182,7 +182,7 @@ struct static_unroll_count
     template <typename F>
     __forceinline__ __host__ __device__ constexpr static_unroll_count(F f)
     {
-        if constexpr(Hint == 1)
+        if constexpr(Hint == 1 || (End - Start) <= Hint)
         {
             static_nounroll<ItemType, Start, End, Stride>{f};
         }
