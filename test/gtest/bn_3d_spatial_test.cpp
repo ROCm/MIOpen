@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,26 +24,15 @@
  *
  *******************************************************************************/
 
-#include "driver.hpp"
-#include "get_handle.hpp"
-#include "tensor_holder.hpp"
-#include "test.hpp"
-#include "verify.hpp"
-#include "random.hpp"
-#include <array>
-#include <cmath>
-#include <ctime>
-#include <iomanip>
-#include <iostream>
-#include <iterator>
-#include <limits>
-#include <memory>
-#include <miopen/batch_norm.hpp>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
 #include <miopen/activ.hpp>
-#include <utility>
-#include <cfloat>
+#include <miopen/batch_norm.hpp>
+#include <miopen/ford.hpp>
+
+#include "get_handle.hpp"
+#include "gtest_common.hpp"
+#include "random.hpp"
+#include "test_parameter_name_generator.hpp"
+
 // Run CPU emulations in hierarchical reduction mode.
 #define MIO_HEIRARCH_SEL 1
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
@@ -56,31 +45,33 @@
 #define PREC_TYPE T
 #endif
 
+namespace {
+
+using TestCase = NamedContainer<std::vector<int>>;
+
 //****************************************************
 // FORWARD TRAIN
 //****************************************************
 template <class T, class U>
 struct verify_forward_train_3d_bn_spatial
 {
-
     const tensor<T> input;
     const tensor<U> scale;
     const tensor<U> shift;
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>, tensor<U>, tensor<U>> cpu() const
     {
-
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
         double epsilon      = MIO_BN_TEST_EPSILON;
         double expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
 
-        std::size_t n_batch, channels, depth, height, width;
+        size_t n_batch, channels, depth, height, width;
         std::tie(n_batch, channels, depth, height, width) =
             miopen::tien<5>(input.desc.GetLengths());
 
-        std::size_t rs_n_batch, rs_channels, rs_depth, rs_height, rs_width;
+        size_t rs_n_batch, rs_channels, rs_depth, rs_height, rs_width;
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
 
@@ -104,7 +95,7 @@ struct verify_forward_train_3d_bn_spatial
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
 
             const double Data_scale = 0.001;
-            for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
+            for(size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
                 runMean[i] = prng::gen_descreet_uniform_sign<U>(Data_scale, 100);
                 runVar[i]  = prng::gen_descreet_unsigned<U>(Data_scale, 100);
@@ -135,33 +126,18 @@ struct verify_forward_train_3d_bn_spatial
 
 #if(MIO_HEIRARCH_SEL == 0)
             // process the batch per channel
-            for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-            { // via mini_batch
-                for(std::size_t didx = 0; didx < depth; ++didx)
-                { // via depth
-                    for(std::size_t row = 0; row < height; row++)
-                    { // via rows
-                        for(std::size_t column = 0; column < width; column++)
-                        { // via columns
-                            // #1 calculate the mean
-                            // iterating through the stack of images in the mini_batch
-                            mean_accum += input(bidx, cidx, didx, row, column);
-                        } // end for (column)
-                    }     // end for (row)
-                }         // end for (depth)
-            }             // end for (n)
+            miopen::ford(n_batch, depth, height, width)(
+                [&](size_t bidx, size_t didx, size_t row, size_t column) {
+                    // #1 calculate the mean
+                    // iterating through the stack of images in the mini_batch
+                    mean_accum += input(bidx, cidx, didx, row, column);
+                });
 #else
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth
-                for(std::size_t row = 0; row < height; row++){ //via rows
-                    for(std::size_t column = 0; column < width; column++){// via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
-                            mean_accum_arr[row] += input(bidx,cidx,didx, row,column);
-                        }
-                    }// for (column)
-                }// for (row)
-            } // for (depth)
-            for(std::size_t i = 0; i<height; i++) mean_accum += mean_accum_arr[i];
+            miopen::ford(depth, height, width, n_batch)([&](size_t didx, size_t row, size_t column, size_t bidx) {
+                mean_accum_arr[row] += input(bidx, cidx, didx, row, column);
+            });
+
+            for(size_t i = 0; i<height; i++) mean_accum += mean_accum_arr[i];
 #endif
             mean_accum /= ndhw;
 
@@ -171,36 +147,20 @@ struct verify_forward_train_3d_bn_spatial
 #if(MIO_HEIRARCH_SEL == 0)
             // #2 calculate the variances
             // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-            for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-            { // via mini_batch
-                for(std::size_t didx = 0; didx < depth; ++didx)
-                { // via depth
-                    for(std::size_t row = 0; row < height; row++)
-                    { // via rows
-                        for(std::size_t column = 0; column < width; column++)
-                        { // via columns
-                            // using out buffer as scratchpad
-                            out(bidx, cidx, didx, row, column) = elemStd =
-                                (input(bidx, cidx, didx, row, column) - mean_accum); // (x_i - mean)
-                            variance_accum += (elemStd * elemStd); // sum{ (x_i - mean)^2 }
-                        }                                          // end for (column)
-                    }                                              // end for (row)
-                }                                                  // for (depth)
-            }                                                      // end for(n)
-
+            miopen::ford(n_batch, depth, height, width)(
+                [&](size_t bidx, size_t didx, size_t row, size_t column) {
+                    // using out buffer as scratchpad
+                    out(bidx, cidx, didx, row, column) = elemStd =
+                        (input(bidx, cidx, didx, row, column) - mean_accum); // (x_i - mean)
+                    variance_accum += (elemStd * elemStd); // sum{ (x_i - mean)^2 }
+                });
 #else
-            for(std::size_t didx = 0; didx < depth; ++didx) // via depth
-            {
-                for(std::size_t row = 0; row < height; row++){ //via rows
-                    for(std::size_t column = 0; column < width; column++){// via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
-                            out(bidx,cidx,didx,row,column) = elemStd = input(bidx,cidx,didx,row,column) - mean_accum;
-                            variance_accum_arr[row] += elemStd*elemStd;
-                        }
-                    }// for (column)
-                }// for (row)
-            }
-            for(std::size_t i = 0; i<height; i++) variance_accum += variance_accum_arr[i];
+            miopen::ford(depth, height, width, n_batch)([&](size_t didx, size_t row, size_t column, size_t bidx) {
+                out(bidx,cidx,didx,row,column) = elemStd = input(bidx,cidx,didx,row,column) - mean_accum;
+                variance_accum_arr[row] += elemStd * elemStd;
+            });
+
+            for(size_t i = 0; i<height; i++) variance_accum += variance_accum_arr[i];
 #endif
             variance_accum /= ndhw; // (1/N)*sum{ (x_i - mean)^2 }
             // #3 add epsilon for numeric stability, sqr_root, and invert
@@ -208,24 +168,14 @@ struct verify_forward_train_3d_bn_spatial
 
             // #4 apply the normalization
             // x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
-            for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-            { // via mini_batch
-                for(std::size_t didx = 0; didx < depth; ++didx)
-                { // via depth
-                    for(std::size_t row = 0; row < height; row++)
-                    { // via rows
-                        for(std::size_t column = 0; column < width; column++)
-                        { // via columns
-                            // #5 Gamma and Beta adjust
-                            // y_i = gamma*x_hat + beta
-                            out(bidx, cidx, didx, row, column) =
-                                scale(0, cidx, 0, 0, 0) *
-                                    (invVar * out(bidx, cidx, didx, row, column)) +
-                                shift(0, cidx, 0, 0, 0);
-                        } // for (column)
-                    }     // for (row)
-                }
-            } // end for(n_batchs)
+            miopen::ford(n_batch, depth, height, width)(
+                [&](size_t bidx, size_t didx, size_t row, size_t column) {
+                    // #5 Gamma and Beta adjust
+                    // y_i = gamma*x_hat + beta
+                    out(bidx, cidx, didx, row, column) =
+                        scale(0, cidx, 0, 0, 0) * (invVar * out(bidx, cidx, didx, row, column)) +
+                        shift(0, cidx, 0, 0, 0);
+                });
 
             saveMean(0, cidx, 0, 0, 0)   = mean_accum;
             saveInvVar(0, cidx, 0, 0, 0) = invVar;
@@ -252,21 +202,19 @@ struct verify_forward_train_3d_bn_spatial
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>, tensor<U>, tensor<U>> gpu() const
     {
-
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-
         auto&& handle = get_handle();
 
-        std::size_t n_batch, channels, depth, height, width;
+        size_t n_batch, channels, depth, height, width;
         std::tie(n_batch, channels, depth, height, width) =
             miopen::tien<5>(input.desc.GetLengths());
 
         auto out = input;
         std::fill(out.begin(), out.end(), 0);
 
-        std::size_t rs_n_batch, rs_channels, rs_depth, rs_height, rs_width;
+        size_t rs_n_batch, rs_channels, rs_depth, rs_height, rs_width;
         auto derivedBnDesc = miopen::TensorDescriptor{};
 
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
@@ -291,7 +239,7 @@ struct verify_forward_train_3d_bn_spatial
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
 
             const double Data_scale = 0.001;
-            for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
+            for(size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
                 runMean[i] = prng::gen_descreet_uniform_sign<U>(Data_scale, 100);
                 runVar[i]  = prng::gen_descreet_unsigned<U>(Data_scale, 100);
@@ -361,7 +309,6 @@ struct verify_forward_train_3d_bn_spatial
 
     void fail(int badtensor) const
     {
-
         std::cout << "Forward Train Spatial Batch Normalization: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
 
@@ -385,20 +332,18 @@ struct verify_forward_train_3d_bn_spatial
 template <class T, class U>
 struct verify_forward_infer_3d_bn_spatial_recalc
 {
-
     const tensor<T> input;
     const tensor<U> scale;
     const tensor<U> shift;
 
     tensor<T> cpu() const
     {
-
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
         double epsilon = MIO_BN_TEST_EPSILON;
 
-        std::size_t n_batch, channels, depth, height, width;
+        size_t n_batch, channels, depth, height, width;
         std::tie(n_batch, channels, depth, height, width) =
             miopen::tien<5>(input.desc.GetLengths());
 
@@ -416,71 +361,46 @@ struct verify_forward_infer_3d_bn_spatial_recalc
             double invVar         = 0.;
 
             // process the batch per channel
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via rows
-                for(std::size_t row = 0; row < height; row++)
-                { // via rows
-                    for(std::size_t column = 0; column < width; column++)
-                    { // via columns
-                        // #1 calculate the mean
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            // iterating through the stack of images in the mini_batch
-                            mean_accum += input(bidx, cidx, didx, row, column);
-                        } // end for (n)
-                    }     // end for (column)
-                }         // end for (row)
-            }
+            miopen::ford(depth, height, width, n_batch)(
+                [&](size_t didx, size_t row, size_t column, size_t bidx) {
+                    // iterating through the stack of images in the mini_batch
+                    mean_accum += input(bidx, cidx, didx, row, column);
+                });
+
             mean_accum /= ndhw;
 
             elemStd        = 0.;
             variance_accum = 0.;
+
             // #2 calculate the variances
             // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth
-                for(std::size_t row = 0; row < height; row++)
-                { // via rows
-                    for(std::size_t column = 0; column < width; column++)
-                    { // via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            // using out buffer as scratchpad
-                            out(bidx, cidx, didx, row, column) = elemStd =
-                                (input(bidx, cidx, didx, row, column) - mean_accum); // (x_i - mean)
-                            variance_accum += (elemStd * elemStd); // sum{ (x_i - mean)^2 }
-                        }                                          // end for(n)
-                    }                                              // end for (column)
-                }                                                  // end for (row)
-            }                                                      // end for (depth)
-            variance_accum /= ndhw;                                // (1/N)*sum{ (x_i - mean)^2 }
+            miopen::ford(depth, height, width, n_batch)(
+                [&](size_t didx, size_t row, size_t column, size_t bidx) {
+                    // using out buffer as scratchpad
+                    out(bidx, cidx, didx, row, column) = elemStd =
+                        (input(bidx, cidx, didx, row, column) - mean_accum); // (x_i - mean)
+                    variance_accum += (elemStd * elemStd); // sum{ (x_i - mean)^2 }
+                });
+
+            variance_accum /= ndhw; // (1/N)*sum{ (x_i - mean)^2 }
 
             // #3 add epsilon for numeric stability, sqr_root, and invert
             invVar = 1.0 / sqrt(variance_accum + epsilon);
 
             // #4 apply the normalization
             // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth
-                for(std::size_t row = 0; row < height; row++)
-                { // via rows
-                    for(std::size_t column = 0; column < width; column++)
-                    { // via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            elemStd = out(bidx,
-                                          cidx,
-                                          didx,
-                                          row,
-                                          column); // using saved values from output tensor
-                            inhat   = elemStd * invVar;
-                            // #5 Gamma and Beta adjust // y_i = gamma*x_hat + beta
-                            out(bidx, cidx, didx, row, column) =
-                                scale(0, cidx, 0, 0, 0) * inhat + shift(0, cidx, 0, 0, 0);
-                        } // end for(n_batchs)
-                    }     // for (column)
-                }         // for (row)
-            }             // for (depth)
+            miopen::ford(depth, height, width, n_batch)(
+                [&](size_t didx, size_t row, size_t column, size_t bidx) {
+                    elemStd = out(bidx,
+                                  cidx,
+                                  didx,
+                                  row,
+                                  column); // using saved values from output tensor
+                    inhat   = elemStd * invVar;
+                    // #5 Gamma and Beta adjust // y_i = gamma*x_hat + beta
+                    out(bidx, cidx, didx, row, column) =
+                        scale(0, cidx, 0, 0, 0) * inhat + shift(0, cidx, 0, 0, 0);
+                });
         });
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -495,7 +415,6 @@ struct verify_forward_infer_3d_bn_spatial_recalc
 
     tensor<T> gpu() const
     {
-
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
@@ -554,22 +473,20 @@ struct verify_forward_infer_3d_bn_spatial_recalc
 template <class T, class U>
 struct verify_forward_infer_3d_bn_spatial_use_est
 {
-
     const tensor<T> input;
     const tensor<U> scale;
     const tensor<U> shift;
     const tensor<U> estMean;
     const tensor<U> estVar;
+
     tensor<T> cpu() const
     {
-
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-
         double epsilon = MIO_BN_TEST_EPSILON;
 
-        std::size_t n_batch, channels, depth, height, width;
+        size_t n_batch, channels, depth, height, width;
         std::tie(n_batch, channels, depth, height, width) =
             miopen::tien<5>(input.desc.GetLengths());
 
@@ -584,24 +501,15 @@ struct verify_forward_infer_3d_bn_spatial_use_est
             double invVar   = 1.0 / sqrt(variance + epsilon);
 
             // process the batch per channel
-            for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-            { // via mini_batch
-                for(std::size_t didx = 0; didx < depth; ++didx)
-                { // via depth
-                    for(std::size_t row = 0; row < height; row++)
-                    { // via rows
-                        for(std::size_t column = 0; column < width; column++)
-                        { // via columns
-
-                            elemStd = input(bidx, cidx, didx, row, column) - mean;
-                            inhat   = elemStd * invVar;
-                            out(bidx, cidx, didx, row, column) =
-                                scale(0, cidx, 0, 0, 0) * inhat + shift(0, cidx, 0, 0, 0);
-                        }
-                    }
-                }
-            }
+            miopen::ford(n_batch, depth, height, width)(
+                [&](size_t bidx, size_t didx, size_t row, size_t column) {
+                    elemStd = input(bidx, cidx, didx, row, column) - mean;
+                    inhat   = elemStd * invVar;
+                    out(bidx, cidx, didx, row, column) =
+                        scale(0, cidx, 0, 0, 0) * inhat + shift(0, cidx, 0, 0, 0);
+                });
         });
+
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
@@ -677,24 +585,22 @@ struct verify_forward_infer_3d_bn_spatial_use_est
 template <class T, class U>
 struct verify_backward_3d_bn_spatial_recalc
 {
-
     const tensor<T> x_input;
     const tensor<T> dy_input;
     const tensor<U> scale;
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>> cpu() const
     {
-
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
         double epsilon = MIO_BN_TEST_EPSILON;
 
-        std::size_t n_batch, channels, depth, height, width;
+        size_t n_batch, channels, depth, height, width;
         std::tie(n_batch, channels, depth, height, width) =
             miopen::tien<5>(x_input.desc.GetLengths());
 
-        std::size_t ss_n_batch, ss_channels, ss_depth, ss_height, ss_width;
+        size_t ss_n_batch, ss_channels, ss_depth, ss_height, ss_width;
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_depth, ss_height, ss_width) =
@@ -732,68 +638,36 @@ struct verify_backward_3d_bn_spatial_recalc
 
 // process the batch per channel
 #if(MIO_HEIRARCH_SEL == 0)
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth
-                for(std::size_t row = 0; row < height; row++)
-                { // via rows
-                    for(std::size_t column = 0; column < width; column++)
-                    { // via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            // #1 calculate the mean
-                            mean += x_input(bidx, cidx, didx, row, column);
-                        }
-                    } // for (column)
-                }     // for (row)
-            }         // for (depth)
+            miopen::ford(depth, height, width, n_batch)(
+                [&](size_t didx, size_t row, size_t column, size_t bidx) {
+                    // #1 calculate the mean
+                    mean += x_input(bidx, cidx, didx, row, column);
+                });
 #else
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth
-                for(std::size_t row = 0; row < height; row++){ //via rows
-                    for(std::size_t column = 0; column < width; column++){// via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
-                            mean_accum_arr[row] += x_input(bidx,cidx,didx,row,column);
-                        }
-                    }// for (column)
-                }// for (row)
-            }
-            for(std::size_t i = 0; i<height; i++) mean += mean_accum_arr[i];
+            miopen::ford(depth, height, width, n_batch)([&](size_t didx, size_t row, size_t column, size_t bidx) {
+                mean_accum_arr[row] += x_input(bidx, cidx, didx, row, column);
+            });
+
+            for(size_t i = 0; i<height; i++) mean += mean_accum_arr[i];
 #endif
             mean /= ndhw;
 
             elemStd  = 0.;
             variance = 0.;
 #if(MIO_HEIRARCH_SEL == 0)
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth
-                for(std::size_t row = 0; row < height; row++)
-                { // via rows
-                    for(std::size_t column = 0; column < width; column++)
-                    { // via columns
-                        // #2 calculate the variances
-                        // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            // per (x-dims) channel load a block of data into LDS
-                            elemStd = x_input(bidx, cidx, didx, row, column) - mean; // (x_i - mean)
-                            variance += elemStd * elemStd; // sum{ (x_i - mean)^2 }
-                        }                                  // end for(n)
-                    }                                      // for (column)
-                }                                          // for (row)
-            }
+            miopen::ford(depth, height, width, n_batch)(
+                [&](size_t didx, size_t row, size_t column, size_t bidx) {
+                    // per (x-dims) channel load a block of data into LDS
+                    elemStd = x_input(bidx, cidx, didx, row, column) - mean; // (x_i - mean)
+                    variance += elemStd * elemStd; // sum{ (x_i - mean)^2 }
+                });
 #else
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { //
-                for(std::size_t row = 0; row < height; row++){ //via rows
-                    for(std::size_t column = 0; column < width; column++){// via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
-                            elemStd = x_input(bidx,cidx,didx,row,column) - mean;
-                            variance_accum_arr[row] += elemStd*elemStd;
-                        }
-                    }// for (column)
-                }// for (row)
-            }
-            for(std::size_t i = 0; i<height; i++) variance += variance_accum_arr[i];
+            miopen::ford(depth, height, width, n_batch)([&](size_t didx, size_t row, size_t column, size_t bidx) {
+                elemStd = x_input(bidx,cidx,didx,row,column) - mean;
+                variance_accum_arr[row] += elemStd*elemStd;
+            });
+
+            for(size_t i = 0; i<height; i++) variance += variance_accum_arr[i];
 #endif
             variance /= ndhw; // (1/(N*H*W))*sum{ (x_i - mean)^2 }
             invVar = 1. / double(sqrt(variance + epsilon));
@@ -801,70 +675,44 @@ struct verify_backward_3d_bn_spatial_recalc
             dscale(0, cidx, 0, 0, 0) = 0.;
 
 #if(MIO_HEIRARCH_SEL == 0)
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { //
-                for(std::size_t row = 0; row < height; row++)
-                { // via rows
-                    for(std::size_t column = 0; column < width; column++)
-                    { // via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            xhat_index =
-                                in_cstride * bidx + in_dstride * didx + width * row + column;
-                            // per (x-dims) channel load a block of data into LDS
-                            elemStd = x_input(bidx, cidx, didx, row, column) - mean; // (x_i - mean)
-                            xhat[xhat_index] = elemStd * invVar;
-                            dyelem           = dy_input(bidx, cidx, didx, row, column);
-                            dshift(0, cidx, 0, 0, 0) += dyelem;
-                            dscale(0, cidx, 0, 0, 0) += xhat[xhat_index] * dyelem;
-                        } // end for(n_batch)
-                    }     // for (column)
-                }         // for (row)
-            }
+            miopen::ford(depth, height, width, n_batch)(
+                [&](size_t didx, size_t row, size_t column, size_t bidx) {
+                    xhat_index = in_cstride * bidx + in_dstride * didx + width * row + column;
+                    // per (x-dims) channel load a block of data into LDS
+                    elemStd = x_input(bidx, cidx, didx, row, column) - mean; // (x_i - mean)
+                    xhat[xhat_index] = elemStd * invVar;
+                    dyelem           = dy_input(bidx, cidx, didx, row, column);
+                    dshift(0, cidx, 0, 0, 0) += dyelem;
+                    dscale(0, cidx, 0, 0, 0) += xhat[xhat_index] * dyelem;
+                });
 #else
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            {
-                for(std::size_t row = 0; row < height; row++){ //via rows
-                    for(std::size_t column = 0; column < width; column++){// via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
-                            xhat_index = in_cstride*bidx + in_dstride*didx + width*row + column;
-                            //per (x-dims) channel load a block of data into LDS
-                            elemStd             = x_input(bidx,cidx,didx,row,column) - mean;// (x_i - mean)
-                            xhat[xhat_index]    = elemStd*invVar;
-                            dyelem              = dy_input(bidx,cidx,didx,row,column);
-                            dshift_accum_arr[row] += dyelem;
-                            dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
-                            //dscale_accum_arr[row] += x_input(bidx,cidx,row,column);;//dscale_accum_arr[row] += xhat[xhat_index];
-                            //dscale_accum_arr[row] += 1.0;//DEBUG
-                        }
-                    }// for (column)
-                }// for (row)
-            }
-            for(std::size_t i = 0; i<height; i++) {
+            miopen::ford(depth, height, width, n_batch)([&](size_t didx, size_t row, size_t column, size_t bidx) {
+                xhat_index = in_cstride*bidx + in_dstride*didx + width*row + column;
+                //per (x-dims) channel load a block of data into LDS
+                elemStd             = x_input(bidx, cidx, didx, row, column) - mean;// (x_i - mean)
+                xhat[xhat_index]    = elemStd*invVar;
+                dyelem              = dy_input(bidx, cidx, didx, row, column);
+                dshift_accum_arr[row] += dyelem;
+                dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
+                //dscale_accum_arr[row] += x_input(bidx,cidx,row,column);;//dscale_accum_arr[row] += xhat[xhat_index];
+                //dscale_accum_arr[row] += 1.0;//DEBUG
+            });
+
+            for(size_t i = 0; i<height; i++) {
                 dshift(0,cidx,0,0,0) += dshift_accum_arr[i];
                 dscale(0,cidx,0,0,0) += dscale_accum_arr[i];
             }
 #endif
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { //
-                for(std::size_t row = 0; row < height; row++)
-                { // via rows
-                    for(std::size_t column = 0; column < width; column++)
-                    { // via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            xhat_index =
-                                in_cstride * bidx + in_dstride * didx + width * row + column;
+            miopen::ford(depth, height, width, n_batch)(
+                [&](size_t didx, size_t row, size_t column, size_t bidx) {
+                    xhat_index = in_cstride * bidx + in_dstride * didx + width * row + column;
 
-                            double tmp1 = ndhw * dy_input(bidx, cidx, didx, row, column) -
-                                          dshift(0, cidx, 0, 0, 0);
-                            double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0, 0);
-                            double tmp3 = (scale(0, cidx, 0, 0, 0) * invVar) / ndhw;
-                            dx_out(bidx, cidx, didx, row, column) = tmp3 * (tmp2 + tmp1);
-                        } // end for(n_batchs)
-                    }     // for (column)
-                }         // for (row)
-            }
+                    const double tmp1 =
+                        ndhw * dy_input(bidx, cidx, didx, row, column) - dshift(0, cidx, 0, 0, 0);
+                    const double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0, 0);
+                    const double tmp3 = (scale(0, cidx, 0, 0, 0) * invVar) / ndhw;
+                    dx_out(bidx, cidx, didx, row, column) = tmp3 * (tmp2 + tmp1);
+                });
         }); // for (channel)
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -885,14 +733,14 @@ struct verify_backward_3d_bn_spatial_recalc
 #endif
         auto&& handle = get_handle();
 
-        std::size_t n_batch, channels, depth, height, width;
+        size_t n_batch, channels, depth, height, width;
         std::tie(n_batch, channels, depth, height, width) =
             miopen::tien<5>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, depth, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
 
-        std::size_t ss_n_batch, ss_channels, ss_depth, ss_height, ss_width;
+        size_t ss_n_batch, ss_channels, ss_depth, ss_height, ss_width;
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_depth, ss_height, ss_width) =
@@ -976,27 +824,25 @@ struct verify_backward_3d_bn_spatial_recalc
 template <class T, class U>
 struct verify_backward_3d_bn_spatial_use_saved
 {
-
     const tensor<T> x_input;
     const tensor<T> dy_input;
     const tensor<U> scale;
     const tensor<U> savedMean;
     const tensor<U> savedInvVar;
+
     std::tuple<tensor<T>, tensor<U>, tensor<U>> cpu() const
     {
-
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-
-        std::size_t n_batch, channels, depth, height, width;
+        size_t n_batch, channels, depth, height, width;
         std::tie(n_batch, channels, depth, height, width) =
             miopen::tien<5>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, depth, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
 
-        std::size_t ss_n_batch, ss_channels, ss_depth, ss_height, ss_width;
+        size_t ss_n_batch, ss_channels, ss_depth, ss_height, ss_width;
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_depth, ss_height, ss_width) =
@@ -1030,71 +876,44 @@ struct verify_backward_3d_bn_spatial_use_saved
             dscale(0, cidx, 0, 0, 0) = 0.;
 
 #if(MIO_HEIRARCH_SEL == 0)
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth
-                for(std::size_t row = 0; row < height; row++)
-                { // via rows
-                    for(std::size_t column = 0; column < width; column++)
-                    { // via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            xhat_index =
-                                in_cstride * bidx + in_dstride * didx + width * row + column;
-                            // per (x-dims) channel load a block of data into LDS
-                            elemStd = x_input(bidx, cidx, didx, row, column) - mean; // (x_i - mean)
-                            xhat[xhat_index] = elemStd * invVar;
-                            dyelem           = dy_input(bidx, cidx, didx, row, column);
-                            dshift(0, cidx, 0, 0, 0) += dyelem;
-                            dscale(0, cidx, 0, 0, 0) += xhat[xhat_index] * dyelem;
-                        } // end for(n_batch)
-                    }     // for (column)
-                }         // for (row)
-            }
+            miopen::ford(depth, height, width, n_batch)(
+                [&](size_t didx, size_t row, size_t column, size_t bidx) {
+                    xhat_index = in_cstride * bidx + in_dstride * didx + width * row + column;
+                    // per (x-dims) channel load a block of data into LDS
+                    elemStd = x_input(bidx, cidx, didx, row, column) - mean; // (x_i - mean)
+                    xhat[xhat_index] = elemStd * invVar;
+                    dyelem           = dy_input(bidx, cidx, didx, row, column);
+                    dshift(0, cidx, 0, 0, 0) += dyelem;
+                    dscale(0, cidx, 0, 0, 0) += xhat[xhat_index] * dyelem;
+                });
 #else
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth
-                for(std::size_t row = 0; row < height; row++){ //via rows
-                    for(std::size_t column = 0; column < width; column++){// via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
-                            xhat_index = in_cstride*bidx + in_dstride*didx + width*row + column;
-                            //per (x-dims) channel load a block of data into LDS
-                            elemStd             = x_input(bidx,cidx,didx,row,column) - mean;// (x_i - mean)
-                            xhat[xhat_index]    = elemStd*invVar;
-                            //printf("xhat[%d]: %lf\n",xhat_index,xhat[xhat_index]);
-                            dyelem              = dy_input(bidx,cidx,didx, row,column);
-                            dshift_accum_arr[row] += dyelem;
-                            dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
-                            //dscale_accum_arr[row] += 1.0;//DEBUG
-                        }
-                    }// for (column)
-                }// for (row)
-            }
+            miopen::ford(depth, height, width, n_batch)([&](size_t didx, size_t row, size_t column, size_t bidx) {
+                xhat_index = in_cstride*bidx + in_dstride*didx + width*row + column;
+                //per (x-dims) channel load a block of data into LDS
+                elemStd             = x_input(bidx,cidx,didx,row,column) - mean;// (x_i - mean)
+                xhat[xhat_index]    = elemStd*invVar;
+                //printf("xhat[%d]: %lf\n",xhat_index,xhat[xhat_index]);
+                dyelem              = dy_input(bidx,cidx,didx, row,column);
+                dshift_accum_arr[row] += dyelem;
+                dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
+                //dscale_accum_arr[row] += 1.0;//DEBUG
+            });
 
-            for(std::size_t i = 0; i<height; i++) {
+            for(size_t i = 0; i<height; i++) {
                 dshift(0,cidx,0,0,0) += dshift_accum_arr[i];
                 dscale(0,cidx,0,0,0) += dscale_accum_arr[i];
             }
 #endif
-            for(std::size_t didx = 0; didx < depth; ++didx)
-            { // via depth
-                for(std::size_t row = 0; row < height; row++)
-                { // via rows
-                    for(std::size_t column = 0; column < width; column++)
-                    { // via columns
-                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            xhat_index =
-                                in_cstride * bidx + in_dstride * didx + width * row + column;
+            miopen::ford(depth, height, width, n_batch)(
+                [&](size_t didx, size_t row, size_t column, size_t bidx) {
+                    xhat_index = in_cstride * bidx + in_dstride * didx + width * row + column;
 
-                            double tmp1 = ndhw * dy_input(bidx, cidx, didx, row, column) -
-                                          dshift(0, cidx, 0, 0, 0);
-                            double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0, 0);
-                            double tmp3 = (scale(0, cidx, 0, 0, 0) * invVar) / ndhw;
-                            dx_out(bidx, cidx, didx, row, column) = tmp3 * (tmp2 + tmp1);
-                        } // end for(n_batchs)
-                    }     // for (column)
-                }         // for (row)
-            }
+                    const double tmp1 =
+                        ndhw * dy_input(bidx, cidx, didx, row, column) - dshift(0, cidx, 0, 0, 0);
+                    const double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0, 0);
+                    const double tmp3 = (scale(0, cidx, 0, 0, 0) * invVar) / ndhw;
+                    dx_out(bidx, cidx, didx, row, column) = tmp3 * (tmp2 + tmp1);
+                });
         }); // for (channel)
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1108,20 +927,19 @@ struct verify_backward_3d_bn_spatial_use_saved
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>> gpu() const
     {
-
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
         auto&& handle = get_handle();
 
-        std::size_t n_batch, channels, depth, height, width;
+        size_t n_batch, channels, depth, height, width;
         std::tie(n_batch, channels, depth, height, width) =
             miopen::tien<5>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, depth, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
 
-        std::size_t ss_n_batch, ss_channels, ss_depth, ss_height, ss_width;
+        size_t ss_n_batch, ss_channels, ss_depth, ss_height, ss_width;
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_depth, ss_height, ss_width) =
@@ -1207,26 +1025,54 @@ struct verify_backward_3d_bn_spatial_use_saved
 };
 
 //====== DRIVERS ===========================================
-template <class T>
-struct batch_norm_3d_spatial_driver : test_driver
+
+inline auto GenSmokeTestCases()
 {
-    tensor<T> input;
-    tensor<PREC_TYPE> scale;
-    tensor<PREC_TYPE> shift;
-    batch_norm_3d_spatial_driver()
+    return testing::Values(NamedContainer<std::vector<int>>{"dims", {16, 32, 8, 8, 8}, "x"});
+}
+
+inline auto GetSmokeTestCases()
+{
+    static const auto cases = GenSmokeTestCases();
+    return cases;
+}
+
+inline auto GenFullTestCases()
+{
+    return MakeNamedParameterCollectionValues<std::vector<int>>(
+        "dims", get_3d_bn_spatial_inputs(4), "x");
+}
+
+inline auto GetFullTestCases()
+{
+    static const auto cases = GenFullTestCases();
+    return cases;
+}
+
+} // namespace
+
+template <typename T>
+struct Bn3DSpatialTest : public testing::TestWithParam<TestCase>
+{
+    static const constexpr uint64_t MaxValue{miopen_type<T>{} == miopenHalf ? 5 : 17};
+
+    void SetUp() override
     {
-        this->batch_factor = 4;
-        this->tolerance =
-            4e-3 / std::numeric_limits<T>::epsilon(); // ck solver has tolerance of 4e-3
-        add(input,
-            "input",
-            get_3d_bn_spatial_input_tensor(
-                tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
+        prng::reset_seed();
+        const std::vector<int> dims = GetParam();
+        input                       = tensor<T>{dims}.generate(tensor_elem_gen_integer{MaxValue});
+        tolerance = 4e-3 / std::numeric_limits<T>::epsilon(); // ck solver has tolerance of 4e-3
     }
 
-    void run()
+    void Run()
     {
-        std::size_t n, c, d, h, w;
+#if(MIO_BN_TIME_EVERYTHING == 1)
+        const auto t_start = std::chrono::high_resolution_clock::now();
+#endif
+        tensor<PREC_TYPE> scale;
+        tensor<PREC_TYPE> shift;
+
+        size_t n, c, d, h, w;
         std::tie(n, c, d, h, w) = miopen::tien<5>(input.desc.GetLengths());
 
         // The condition is derived form bn_spatial_test.cpp as they are known failures
@@ -1243,21 +1089,22 @@ struct batch_norm_3d_spatial_driver : test_driver
             return;
         }
 
-        std::size_t ssn, ssc, ssd, ssh, ssw;
+        size_t ssn, ssc, ssd, ssh, ssw;
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
         std::tie(ssn, ssc, ssd, ssh, ssw) = miopen::tien<5>(derivedBnDesc.GetLengths());
 
         scale                   = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
         shift                   = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
-        const double Data_scale = 1e-4;
+        const double data_scale = 1e-4;
 
-        for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
+        for(size_t i = 0; i < scale.desc.GetElementSize(); i++)
         {
-            scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
-            shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(data_scale, 100);
+            shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(data_scale, 100);
         }
-        for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
+
+        for(size_t i = 0; i < input.desc.GetElementSize(); i++)
         {
             input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
         }
@@ -1266,50 +1113,38 @@ struct batch_norm_3d_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running forward train spatial with R and S set." << std::endl;
 #endif
-        auto outpair =
-            verify(verify_forward_train_3d_bn_spatial<T, PREC_TYPE>{input, scale, shift});
+        const auto outpair =
+            Verify(verify_forward_train_3d_bn_spatial<T, PREC_TYPE>{input, scale, shift});
 // returns:  std::make_tuple(out,runMean,runVar,saveMean,saveInvVar);
 
 // inference recalc
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running forward inference spatial recalc." << std::endl;
 #endif
-        // this->tolerance = 80;
+        // tolerance = 80;
         // Debug values
         // std::fill(input.begin(), input.end(), 1);
         // std::fill(scale.begin(), scale.end(), 1);
         // std::fill(shift.begin(), shift.end(), 1);
-        verify(verify_forward_infer_3d_bn_spatial_recalc<T, PREC_TYPE>{input, scale, shift});
+        Verify(verify_forward_infer_3d_bn_spatial_recalc<T, PREC_TYPE>{input, scale, shift});
 
         // inference use estimated running values
-        auto estMean = std::get<1>(outpair.second);
-        auto estVar  = std::get<2>(outpair.second);
+        const auto estMean = std::get<1>(outpair.second);
+        const auto estVar  = std::get<2>(outpair.second);
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running forward inference spatial with R set." << std::endl;
 #endif
-        verify(verify_forward_infer_3d_bn_spatial_use_est<T, PREC_TYPE>{
+        Verify(verify_forward_infer_3d_bn_spatial_use_est<T, PREC_TYPE>{
             input, scale, shift, estMean, estVar});
 
         // backprop recalc
         auto dy_input = std::get<0>(outpair.second);
-        for(std::size_t bidx = 0; bidx < n; bidx++)
-        { // via mini_batch
-            for(std::size_t cidx = 0; cidx < c; cidx++)
-            { // via mini_batch
-                for(std::size_t didx = 0; didx < d; didx++)
-                { // via depth
-                    for(std::size_t row = 0; row < h; row++)
-                    { // via rows
-                        for(std::size_t column = 0; column < w; column++)
-                        {
-                            dy_input(bidx, cidx, didx, row, column) *= 0.1;
-                        }
-                    }
-                }
-            }
-        }
+        miopen::ford(n, c, d, h, w)(
+            [&](size_t bidx, size_t cidx, size_t didx, size_t row, size_t column) {
+                dy_input(bidx, cidx, didx, row, column) *= 0.1;
+            });
 #if(MIO_BN_SP_TEST_DEBUG == 2)
-        auto debugvals = verify(verify_backward_3d_bn_spatial_recalc<T>{input, dy_input, scale});
+        auto debugvals = Verify(verify_backward_3d_bn_spatial_recalc<T>{input, dy_input, scale});
         auto gpuout    = std::get<0>(debugvals.second);
         auto cpuout    = std::get<0>(debugvals.first);
 
@@ -1320,42 +1155,29 @@ struct batch_norm_3d_spatial_driver : test_driver
         int mh         = 0;
         int mw         = 0;
 
-        for(std::size_t bidx = 0; bidx < n; bidx++)
-        { // via mini_batch
-            for(std::size_t cidx = 0; cidx < c; cidx++)
-            { // via mini_batch
-                for(std::size_t didx = 0; didx < d; didx++)
-                {
-                    for(std::size_t row = 0; row < h; row++)
-                    { // via rows
-                        for(std::size_t column = 0; column < w; column++)
-                        { // via columns
-                            double diff = fabs(gpuout(bidx, cidx, didx, row, column) -
-                                               cpuout(bidx, cidx, didx, row, column));
-                            if(diff > maxdiff)
-                            {
-                                maxdiff = diff;
-                                mn      = bidx;
-                                mc      = cidx;
-                                md      = didx;
-                                mh      = row;
-                                mw      = column;
-                            }
-                            // if(diff > 1.)
-                            // {
-                            std::cout << "gpu[" << bidx << ", " << cidx << ", " << didx << ", "
-                                      << row << ", " << column
-                                      << "]: " << gpuout(bidx, cidx, didx, row, column) << " :: ";
-                            std::cout << "cpu[" << bidx << ", " << cidx << ", " << didx << ", "
-                                      << row << ", " << column
-                                      << "]: " << cpuout(bidx, cidx, didx, row, column) << " :: ";
-                            std::cout << "diff: " << diff << std::endl;
-                            //    }
-                        }
-                    }
-                }
+        miopen::ford(
+            n, c, d, h, w)([&](size_t bidx, size_t cidx, size_t didx, size_t row, size_t column) {
+            const double diff =
+                fabs(gpuout(bidx, cidx, didx, row, column) - cpuout(bidx, cidx, didx, row, column));
+            if(diff > maxdiff)
+            {
+                maxdiff = diff;
+                mn      = bidx;
+                mc      = cidx;
+                md      = didx;
+                mh      = row;
+                mw      = column;
             }
-        }
+            // if(diff > 1.)
+            // {
+            std::cout << "gpu[" << bidx << ", " << cidx << ", " << didx << ", " << row << ", "
+                      << column << "]: " << gpuout(bidx, cidx, didx, row, column) << " :: ";
+            std::cout << "cpu[" << bidx << ", " << cidx << ", " << didx << ", " << row << ", "
+                      << column << "]: " << cpuout(bidx, cidx, didx, row, column) << " :: ";
+            std::cout << "diff: " << diff << std::endl;
+            //    }
+        });
+
         if(maxdiff > 0)
         {
             std::cout << "Max diff: " << maxdiff << std::endl;
@@ -1368,17 +1190,17 @@ struct batch_norm_3d_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running back propagation spatial recalc." << std::endl;
 #endif
-        this->tolerance = 80 * input.desc.GetElementSize();
-        verify(verify_backward_3d_bn_spatial_recalc<T, PREC_TYPE>{input, dy_input, scale});
+        tolerance = 80 * input.desc.GetElementSize();
+        Verify(verify_backward_3d_bn_spatial_recalc<T, PREC_TYPE>{input, dy_input, scale});
 #endif
 
         // backprop use saved values
-        auto savedMean   = std::get<3>(outpair.second);
-        auto savedInvVar = std::get<4>(outpair.second);
+        const auto savedMean   = std::get<3>(outpair.second);
+        const auto savedInvVar = std::get<4>(outpair.second);
 
 #if(MIO_BN_SP_TEST_DEBUG == 3)
 
-        auto debugvals = verify(verify_backward_3d_bn_spatial_use_saved<T>{
+        auto debugvals = Verify(verify_backward_3d_bn_spatial_use_saved<T>{
             input, dy_input, scale, savedMean, savedInvVar});
         auto gpuout    = std::get<0>(debugvals.second);
         auto cpuout    = std::get<0>(debugvals.first);
@@ -1390,42 +1212,29 @@ struct batch_norm_3d_spatial_driver : test_driver
         int mh         = 0;
         int mw         = 0;
 
-        for(std::size_t bidx = 0; bidx < n; bidx++)
-        { // via mini_batch
-            for(std::size_t cidx = 0; cidx < c; cidx++)
-            { // via mini_batch
-                for(std::size_t didx = 0; didx < d; didx++)
-                { // via mini_batch
-                    for(std::size_t row = 0; row < h; row++)
-                    { // via rows
-                        for(std::size_t column = 0; column < w; column++)
-                        { // via columns
-                            double diff = fabs(gpuout(bidx, cidx, didx, row, column) -
-                                               cpuout(bidx, cidx, didx, row, column));
-                            if(diff > maxdiff)
-                            {
-                                maxdiff = diff;
-                                mn      = bidx;
-                                mc      = cidx;
-                                md      = didx;
-                                mh      = row;
-                                mw      = column;
-                            }
-                            // if(diff > 1.)
-                            //{
-                            std::cout << "gpu[" << bidx << ", " << cidx << ", " << didx << ", "
-                                      << row << ", " << column
-                                      << "]: " << gpuout(bidx, cidx, didx, row, column) << " :: ";
-                            std::cout << "cpu[" << bidx << ", " << cidx << ", " << didx << ", "
-                                      << row << ", " << column
-                                      << "]: " << cpuout(bidx, cidx, didx, row, column) << " :: ";
-                            std::cout << "diff: " << diff << std::endl;
-                            //}
-                        }
-                    }
-                }
+        miopen::ford(
+            n, c, d, h, w)([&](size_t bidx, size_t cidx, size_t didx, size_t row, size_t column) {
+            const double diff =
+                fabs(gpuout(bidx, cidx, didx, row, column) - cpuout(bidx, cidx, didx, row, column));
+            if(diff > maxdiff)
+            {
+                maxdiff = diff;
+                mn      = bidx;
+                mc      = cidx;
+                md      = didx;
+                mh      = row;
+                mw      = column;
             }
-        }
+            // if(diff > 1.)
+            //{
+            std::cout << "gpu[" << bidx << ", " << cidx << ", " << didx << ", " << row << ", "
+                      << column << "]: " << gpuout(bidx, cidx, didx, row, column) << " :: ";
+            std::cout << "cpu[" << bidx << ", " << cidx << ", " << didx << ", " << row << ", "
+                      << column << "]: " << cpuout(bidx, cidx, didx, row, column) << " :: ";
+            std::cout << "diff: " << diff << std::endl;
+            //}
+        });
+
         if(maxdiff > 0)
         {
             std::cout << "Max diff: " << maxdiff << std::endl;
@@ -1438,24 +1247,105 @@ struct batch_norm_3d_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running back propagation spatial with S set." << std::endl;
 #endif
-        verify(verify_backward_3d_bn_spatial_use_saved<T, PREC_TYPE>{
+        Verify(verify_backward_3d_bn_spatial_use_saved<T, PREC_TYPE>{
             input, dy_input, scale, savedMean, savedInvVar});
 #endif
+
+#if(MIO_BN_TIME_EVERYTHING == 1)
+        const auto t_end = std::chrono::high_resolution_clock::now();
+        std::cout << "Wall clock: full PER_ACTIVATION test pass time: "
+                  << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
+                  << std::endl;
+#endif
+    }
+
+private:
+    tensor<T> input;
+    double tolerance{0.0};
+
+private:
+    auto Verify(auto&& v) -> decltype(std::make_pair(v.cpu(), v.gpu()))
+    {
+        const auto cpu = v.cpu();
+        const auto gpu = v.gpu();
+
+        Compare(v, cpu, gpu);
+
+        return std::make_pair(cpu, gpu);
+    }
+
+    template <typename... CpuRanges, typename... GpuRanges>
+    void Compare(auto&& v, const std::tuple<CpuRanges...>& cpu, const std::tuple<GpuRanges...>& gpu)
+    {
+        static_assert(sizeof...(CpuRanges) == sizeof...(GpuRanges), "CPU and GPU mismatch");
+
+        miopen::sequence([&](auto... is) {
+            miopen::each_args(
+                [&](auto i) {
+                    const auto& c = std::get<i>(cpu);
+                    const auto& g = std::get<i>(gpu);
+
+                    ASSERT_EQ(miopen::range_distance(c), miopen::range_distance(g));
+
+                    using value_type = miopen::range_value<decltype(g)>;
+
+                    const double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
+                    const double error     = miopen::rms_range(c, g);
+
+                    EXPECT_LE(error, threshold);
+
+                    if(error > threshold)
+                    {
+                        v.fail(i);
+                    }
+                },
+                is...);
+        })(std::integral_constant<size_t, sizeof...(CpuRanges)>{});
+    }
+
+    template <typename CpuRanges, typename GpuRanges>
+    void Compare(auto&& v, const CpuRanges& cpu, const GpuRanges& gpu)
+    {
+        ASSERT_EQ(miopen::range_distance(cpu), miopen::range_distance(gpu));
+
+        using value_type = miopen::range_value<decltype(gpu)>;
+
+        const double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
+        const double error     = miopen::rms_range(cpu, gpu);
+
+        EXPECT_LE(error, threshold);
+
+        if(error > threshold)
+        {
+            v.fail(0);
+        }
     }
 };
 
-int main(int argc, const char* argv[])
+struct TestNameGenerator
 {
-#if(MIO_BN_TIME_EVERYTHING == 1)
-    auto t_start = std::chrono::high_resolution_clock::now();
-#endif
-    test_drive<batch_norm_3d_spatial_driver>(argc, argv);
+    std::string operator()(const auto& info)
+    {
+        const auto& dims = info.param;
+        std::stringstream ss;
+        std::string str;
 
-#if(MIO_BN_TIME_EVERYTHING == 1)
-    auto t_end = std::chrono::high_resolution_clock::now();
+        ss << "dims_" << GetRangeAsString(dims(), "x") << "_test_id_" << info.index;
 
-    std::cout << "Wall clock: full SPATIAL test pass time: "
-              << std::chrono::duration<double>(t_end - t_start).count() << " seconds." << std::endl;
-#endif
-    return 0;
-}
+        str = ss.str();
+
+        // Name format only supports letters, numbers and underscores.
+        std::transform(str.begin(), str.end(), str.begin(), [](char c) {
+            return (c == '.') ? 'p' : (std::isalnum(c) ? c : '_');
+        });
+
+        return str;
+    }
+};
+
+using GPU_Bn3DSpatial_FP32 = Bn3DSpatialTest<float>;
+
+TEST_P(GPU_Bn3DSpatial_FP32, TestFloat32) { this->Run(); }
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Bn3DSpatial_FP32, GetSmokeTestCases(), TestNameGenerator{});
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Bn3DSpatial_FP32, GetFullTestCases(), TestNameGenerator{});
