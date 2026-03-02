@@ -396,8 +396,8 @@ protected:
 
     static void GenerateValidConfigs(std::vector<TestConfig>& configs)
     {
-        static int dims[]    = {4, 4, 16, 9, 16};
-        static int strides[] = {9216, 2304, 144, 16, 1};
+        static int dims[]    = {4, 4, 16, 9, 16, 1, 1, 1};
+        static int strides[] = {9216, 2304, 144, 16, 1, 1, 1, 1};
         static_assert(sizeof(dims) == sizeof(strides));
         const auto max_ndims = sizeof(dims) / sizeof(dims[0]);
 
