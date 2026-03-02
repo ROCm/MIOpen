@@ -442,7 +442,9 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
       is_valid(false),
       kernel_source_type(OpenclText),
       fp_contains_bn(false),
-      data_type(inDesc.GetType())
+      data_type(inDesc.GetType()),
+      compiled_invoker(std::nullopt),
+      conv_fwd_algo(std::nullopt)
 {
 }
 
