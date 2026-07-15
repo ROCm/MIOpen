@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -108,6 +108,24 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
     {
         MIOPEN_THROW("MIOPEN_DEVICE_ARCH used, escaping launching kernel");
     }
+
+    // hipExtModuleLaunchKernel() takes the global and local work sizes as uint32_t and
+    // derives the launch grid from them. Reject work sizes that do not fit: otherwise
+    // they are silently truncated, producing an illegal grid and an asynchronous HIP
+    // "invalid configuration argument". During Find (EvaluateInvokers) that error can
+    // corrupt the HIP context and make an unrelated later launch fail fatally. Throwing
+    // here lets Find drop the offending candidate cleanly. Mirrors the guard already
+    // present in run_cooperative() (WORKAROUND_SWDEV_448157).
+    if(gdims[0] >= (1ULL << 32) || gdims[1] >= (1ULL << 32) || gdims[2] >= (1ULL << 32))
+        MIOPEN_THROW("gridDim x blockDim >= 2^32");
+
+    if(ldims[0] == 0 || ldims[1] == 0 || ldims[2] == 0 || gdims[0] % ldims[0] != 0 ||
+       gdims[1] % ldims[1] != 0 || gdims[2] % ldims[2] != 0)
+        MIOPEN_THROW(miopenStatusInternalError);
+
+    // HIP caps gridDim.y and gridDim.z at 65535.
+    if((gdims[1] / ldims[1]) > 0xFFFF || (gdims[2] / ldims[2]) > 0xFFFF)
+        MIOPEN_THROW(miopenStatusInternalError, "gridDim.y/z exceeds 65535");
 
     MIOPEN_HANDLE_LOCK
 

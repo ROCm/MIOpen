@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #include <miopen/solver/conv_direct_naive_conv.hpp>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD)
@@ -63,6 +64,27 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ExecutionContext& ctx,
 
     if(!problem.AllTensorsLengthsFitIntoInt())
         return false;
+
+    // The naive convolution kernels are launched with a 1-D grid whose global work
+    // size is grid_size * block_size, where (forward direction)
+    //   grid_size = n * k   (default/NCHW layout)  or  n * ho  (NHWC layout),
+    // and block_size = 256 (see conv_internal::GetConv2DFWDSolution). This global work
+    // size is passed to hipExtModuleLaunchKernel() as a uint32_t; once it reaches 2^32
+    // it is silently truncated, producing an illegal grid (e.g. gridDim.x == 0) and a
+    // HIP "invalid configuration argument" at launch time. This is reachable with large
+    // batches, e.g. a ViT patch-embedding conv (3->1024, 14x14 kernel, stride 14) with
+    // n >= 16384 on gfx950. Declare the solver not applicable for such sizes so that a
+    // non-overflowing solver is selected instead.
+    if(problem.Is2d())
+    {
+        const auto n  = static_cast<std::size_t>(ProblemInterpreter::GetBatchN(problem));
+        const auto k  = static_cast<std::size_t>(ProblemInterpreter::GetOutputChannelK(problem));
+        const auto ho = static_cast<std::size_t>(ProblemInterpreter::GetOutputHeightHo(problem));
+        const std::size_t grid_size  = problem.IsLayoutDefault() ? (n * k) : (n * ho);
+        const std::size_t block_size = 256;
+        if(grid_size * block_size >= (static_cast<std::size_t>(1) << 32))
+            return false;
+    }
 
     if(problem.IsTensorsCasted())
     {
