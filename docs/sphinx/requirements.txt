@@ -238,7 +238,7 @@ smmap==5.0.1
     # via gitdb
 snowballstemmer==2.2.0
     # via sphinx
-soupsieve==2.5
+soupsieve==2.9
     # via beautifulsoup4
 sphinx==7.3.7
     # via
