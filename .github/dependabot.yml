@@ -1,18 +1,24 @@
+# Copyright Advanced Micro Devices, Inc.
+# SPDX-License-Identifier: MIT
+#
+# Dependabot version updates. See
+# https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
 
-
-  # ── GitHub Actions: keep workflow action versions current ──────────────────
+version: 2
+updates:
   - package-ecosystem: "github-actions"
     # "/" covers .github/workflows; composite actions keep their own `uses:`
     # pins, so .github/actions has to be listed separately to get bumped.
-    directories:
-      - "/"
-      - "/.github/actions/*"
+    directory: "/"
     schedule:
       interval: "daily"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
+      # Wait a week before adopting newly released action versions.
+    cooldown:
+      default-days: 7
+      exclude:
+        - "ROCm/rocm-security-gh*"
     groups:
+      rocm-security-gh:
+        patterns: ["ROCm/rocm-security-gh*"]
       github-actions:
-        patterns:
-          - "*"
+        patterns: ["*"]
