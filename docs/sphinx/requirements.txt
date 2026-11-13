@@ -59,6 +59,7 @@ docutils==0.21.2
     #   myst-parser
     #   pydata-sphinx-theme
     #   sphinx
+    #   sphinx-markdown-builder
 doxysphinx==3.3.12
     # via rocm-docs-core
 exceptiongroup==1.2.2
@@ -161,6 +162,7 @@ packaging==24.0
     # via
     #   ipykernel
     #   matplotlib
+    #   pydata-sphinx-theme
     #   sphinx
 parso==0.8.4
     # via jedi
@@ -180,7 +182,7 @@ pure-eval==0.2.3
     # via stack-data
 pycparser==2.22
     # via cffi
-pydata-sphinx-theme==0.16.1
+pydata-sphinx-theme==0.15.4
     # via
     #   rocm-docs-core
     #   sphinx-book-theme
@@ -225,8 +227,9 @@ referencing==0.36.2
 requests==2.32.4
     # via
     #   pygithub
+    #   rocm-docs-core
     #   sphinx
-rocm-docs-core[api-reference]==1.21.1
+rocm-docs-core[api-reference]==1.42.0
     # via -r requirements.in
 rpds-py==0.22.3
     # via
@@ -251,14 +254,17 @@ sphinx==7.3.7
     #   sphinx-copybutton
     #   sphinx-design
     #   sphinx-external-toc
+    #   sphinx-markdown-builder
     #   sphinx-notfound-page
-sphinx-book-theme==1.1.2
+sphinx-book-theme==1.1.4
     # via rocm-docs-core
 sphinx-copybutton==0.5.2
     # via rocm-docs-core
 sphinx-design==0.5.0
     # via rocm-docs-core
 sphinx-external-toc==1.0.1
+    # via rocm-docs-core
+sphinx-markdown-builder==0.6.11
     # via rocm-docs-core
 sphinx-notfound-page==1.0.1
     # via rocm-docs-core
@@ -279,7 +285,9 @@ sqlalchemy==2.0.37
 stack-data==0.6.3
     # via ipython
 tabulate==0.9.0
-    # via jupyter-cache
+    # via
+    #   jupyter-cache
+    #   sphinx-markdown-builder
 tomli==2.0.1
     # via sphinx
 tornado==6.5.1
